@@ -191,14 +191,20 @@
 #define HW_VENDOR meshtastic_HardwareModel_CROWPANEL
 #elif defined(RAK3312)
 #define HW_VENDOR meshtastic_HardwareModel_RAK3312
+#elif defined(RAK_WISMESH_TAP_V2)
+#define HW_VENDOR meshtastic_HardwareModel_WISMESH_TAP_V2
 #elif defined(LINK_32)
 #define HW_VENDOR meshtastic_HardwareModel_LINK_32
 #elif defined(T_DECK_PRO)
 #define HW_VENDOR meshtastic_HardwareModel_T_DECK_PRO
 #elif defined(T_LORA_PAGER)
 #define HW_VENDOR meshtastic_HardwareModel_T_LORA_PAGER
+#elif defined(HELTEC_V4)
+#define HW_VENDOR meshtastic_HardwareModel_HELTEC_V4
 #elif defined(M5STACK_UNITC6L)
 #define HW_VENDOR meshtastic_HardwareModel_M5STACK_C6L
+#elif defined(HELTEC_WIRELESS_TRACKER_V2)
+#define HW_VENDOR meshtastic_HardwareModel_HELTEC_WIRELESS_TRACKER_V2
 #endif
 
 // -----------------------------------------------------------------------------
