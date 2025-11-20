@@ -42,18 +42,16 @@ bool RoutingModule::handleReceivedProtobuf(const meshtastic_MeshPacket &mp, mesh
 
 meshtastic_MeshPacket *RoutingModule::allocReply()
 {
+    if (config.device.role == meshtastic_Config_DeviceConfig_Role_REPEATER)
+        return NULL;
     assert(currentRequest);
 
     return NULL;
 }
 
-void RoutingModule::sendAckNak(meshtastic_Routing_Error err, NodeNum to, PacketId idFrom, ChannelIndex chIndex, uint8_t hopLimit,
-                               bool ackWantsAck)
+void RoutingModule::sendAckNak(meshtastic_Routing_Error err, NodeNum to, PacketId idFrom, ChannelIndex chIndex, uint8_t hopLimit)
 {
     auto p = allocAckNak(err, to, idFrom, chIndex, hopLimit);
-
-    // Allow the caller to set want_ack on this ACK packet if it's important that the ACK be delivered reliably
-    p->want_ack = ackWantsAck;
 
     router->sendLocal(p); // we sometimes send directly to the local node
 }

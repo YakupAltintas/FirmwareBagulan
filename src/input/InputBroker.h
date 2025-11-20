@@ -1,7 +1,5 @@
 #pragma once
-
 #include "Observer.h"
-#include "freertosinc.h"
 
 enum input_broker_event {
     INPUT_BROKER_NONE = 0,
@@ -43,13 +41,6 @@ typedef struct _InputEvent {
     uint16_t touchX;
     uint16_t touchY;
 } InputEvent;
-
-class InputPollable
-{
-  public:
-    virtual void pollOnce() = 0;
-};
-
 class InputBroker : public Observable<const InputEvent *>
 {
     CallbackObserver<InputBroker, const InputEvent *> inputEventObserver =
@@ -59,22 +50,9 @@ class InputBroker : public Observable<const InputEvent *>
     InputBroker();
     void registerSource(Observable<const InputEvent *> *source);
     void injectInputEvent(const InputEvent *event) { handleInputEvent(event); }
-#if defined(HAS_FREE_RTOS) && !defined(ARCH_RP2040)
-    void requestPollSoon(InputPollable *pollable);
-    void queueInputEvent(const InputEvent *event);
-    void processInputEventQueue();
-#endif
 
   protected:
     int handleInputEvent(const InputEvent *event);
-
-  private:
-#if defined(HAS_FREE_RTOS) && !defined(ARCH_RP2040)
-    QueueHandle_t inputEventQueue;
-    QueueHandle_t pollSoonQueue;
-    TaskHandle_t pollSoonTask;
-    static void pollSoonWorker(void *p);
-#endif
 };
 
 extern InputBroker *inputBroker;

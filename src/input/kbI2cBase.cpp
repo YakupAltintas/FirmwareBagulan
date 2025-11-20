@@ -333,7 +333,6 @@ int32_t KbI2cBase::runOnce()
             }
             TCAKeyboard.trigger();
         }
-        TCAKeyboard.clearInt();
         break;
     }
     case 0x02: {
@@ -520,11 +519,4 @@ int32_t KbI2cBase::runOnce()
         LOG_WARN("Unknown kb_model 0x%02x", kb_model);
     }
     return 300;
-}
-
-void KbI2cBase::toggleBacklight(bool on)
-{
-#if defined(T_LORA_PAGER)
-    TCAKeyboard.setBacklight(on);
-#endif
 }

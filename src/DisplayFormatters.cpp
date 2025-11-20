@@ -76,6 +76,9 @@ const char *DisplayFormatters::getDeviceRole(meshtastic_Config_DeviceConfig_Role
     case meshtastic_Config_DeviceConfig_Role_ROUTER_LATE:
         return "Router Late";
         break;
+    case meshtastic_Config_DeviceConfig_Role_REPEATER:
+        return "Repeater";
+        break;
     default:
         return "Unknown";
         break;

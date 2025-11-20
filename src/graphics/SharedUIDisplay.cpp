@@ -1,10 +1,6 @@
-#include "configuration.h"
-#if HAS_SCREEN
-#include "MeshService.h"
-#include "RTC.h"
-#include "draw/NodeListRenderer.h"
-#include "graphics/ScreenFonts.h"
 #include "graphics/SharedUIDisplay.h"
+#include "RTC.h"
+#include "graphics/ScreenFonts.h"
 #include "graphics/draw/UIRenderer.h"
 #include "main.h"
 #include "meshtastic/config.pb.h"
@@ -65,7 +61,8 @@ void drawRoundedHighlight(OLEDDisplay *display, int16_t x, int16_t y, int16_t w,
 void drawCommonHeader(OLEDDisplay *display, int16_t x, int16_t y, const char *titleStr, bool force_no_invert, bool show_date)
 {
     constexpr int HEADER_OFFSET_Y = 1;
-    y += HEADER_OFFSET_Y;
+    //y += HEADER_OFFSET_Y;
+    y = display->getHeight() - FONT_HEIGHT_SMALL - 2;
 
     display->setFont(FONT_SMALL);
     display->setTextAlignment(TEXT_ALIGN_LEFT);
@@ -82,13 +79,15 @@ void drawCommonHeader(OLEDDisplay *display, int16_t x, int16_t y, const char *ti
         // === Inverted Header Background ===
         if (isInverted) {
             display->setColor(BLACK);
-            display->fillRect(0, 0, screenW, highlightHeight + 2);
+            ///display->fillRect(0, 0, screenW, highlightHeight + 2);
+            display->fillRect(0, display->getHeight() - (highlightHeight + 2), screenW, highlightHeight + 2);
             display->setColor(WHITE);
             drawRoundedHighlight(display, x, y, screenW, highlightHeight, 2);
             display->setColor(BLACK);
         } else {
             display->setColor(BLACK);
-            display->fillRect(0, 0, screenW, highlightHeight + 2);
+            //display->fillRect(0, 0, screenW, highlightHeight + 2);
+            display->fillRect(0, display->getHeight() - (highlightHeight + 2), screenW, highlightHeight + 2);
             display->setColor(WHITE);
             if (isHighResolution) {
                 display->drawLine(0, 20, screenW, 20);
@@ -179,14 +178,20 @@ void drawCommonHeader(OLEDDisplay *display, int16_t x, int16_t y, const char *ti
 
     if (chargePercent != 101) {
         // === Battery % Display ===
+        // Shift the percent text a few pixels to the LEFT to give more space to the icon area.
+        // Make this a small, safe change so other layout logic is unchanged.
+        const int PERCENT_LEFT_SHIFT = 10; // pixels to move left
         char chargeStr[4];
         snprintf(chargeStr, sizeof(chargeStr), "%d", chargePercent);
         int chargeNumWidth = display->getStringWidth(chargeStr);
-        display->drawString(batteryX, textY, chargeStr);
-        display->drawString(batteryX + chargeNumWidth - 1, textY, "%");
+        int pctX = batteryX - PERCENT_LEFT_SHIFT;
+        if (pctX < 0)
+            pctX = 0;
+        display->drawString(pctX, textY, chargeStr);
+        display->drawString(pctX + chargeNumWidth - 1, textY, "%");
         if (isBold) {
-            display->drawString(batteryX + 1, textY, chargeStr);
-            display->drawString(batteryX + chargeNumWidth, textY, "%");
+            display->drawString(pctX + 1, textY, chargeStr);
+            display->drawString(pctX + chargeNumWidth, textY, "%");
         }
     }
 
@@ -288,7 +293,7 @@ void drawCommonHeader(OLEDDisplay *display, int16_t x, int16_t y, const char *ti
                 int iconX = iconRightEdge - mute_symbol_big_width;
                 int iconY = textY + (FONT_HEIGHT_SMALL - mute_symbol_big_height) / 2;
 
-                if (isInverted && !force_no_invert) {
+                if (isInverted) {
                     display->setColor(WHITE);
                     display->fillRect(iconX - 1, iconY - 1, mute_symbol_big_width + 2, mute_symbol_big_height + 2);
                     display->setColor(BLACK);
@@ -400,43 +405,6 @@ const int *getTextPositions(OLEDDisplay *display)
     return textPositions;
 }
 
-// *************************
-// * Common Footer Drawing *
-// *************************
-void drawCommonFooter(OLEDDisplay *display, int16_t x, int16_t y)
-{
-    bool drawConnectionState = false;
-    if (service->api_state == service->STATE_BLE || service->api_state == service->STATE_WIFI ||
-        service->api_state == service->STATE_SERIAL || service->api_state == service->STATE_PACKET ||
-        service->api_state == service->STATE_HTTP || service->api_state == service->STATE_ETH) {
-        drawConnectionState = true;
-    }
-
-    if (drawConnectionState) {
-        if (isHighResolution) {
-            const int scale = 2;
-            const int bytesPerRow = (connection_icon_width + 7) / 8;
-            int iconX = 0;
-            int iconY = SCREEN_HEIGHT - (connection_icon_height * 2);
-
-            for (int yy = 0; yy < connection_icon_height; ++yy) {
-                const uint8_t *rowPtr = connection_icon + yy * bytesPerRow;
-                for (int xx = 0; xx < connection_icon_width; ++xx) {
-                    const uint8_t byteVal = pgm_read_byte(rowPtr + (xx >> 3));
-                    const uint8_t bitMask = 1U << (xx & 7); // XBM is LSB-first
-                    if (byteVal & bitMask) {
-                        display->fillRect(iconX + xx * scale, iconY + yy * scale, scale, scale);
-                    }
-                }
-            }
-
-        } else {
-            display->drawXbm(0, SCREEN_HEIGHT - connection_icon_height, connection_icon_width, connection_icon_height,
-                             connection_icon);
-        }
-    }
-}
-
 bool isAllowedPunctuation(char c)
 {
     const std::string allowed = ".,!?;:-_()[]{}'\"@#$/\\&+=%~^ ";
@@ -464,4 +432,3 @@ std::string sanitizeString(const std::string &input)
 }
 
 } // namespace graphics
-#endif

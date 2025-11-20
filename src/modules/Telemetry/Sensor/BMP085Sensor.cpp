@@ -10,16 +10,19 @@
 
 BMP085Sensor::BMP085Sensor() : TelemetrySensor(meshtastic_TelemetrySensorType_BMP085, "BMP085") {}
 
-bool BMP085Sensor::initDevice(TwoWire *bus, ScanI2C::FoundDevice *dev)
+int32_t BMP085Sensor::runOnce()
 {
     LOG_INFO("Init sensor: %s", sensorName);
-
+    if (!hasSensor()) {
+        return DEFAULT_SENSOR_MINIMUM_WAIT_TIME_BETWEEN_READS;
+    }
     bmp085 = Adafruit_BMP085();
-    status = bmp085.begin(dev->address.address, bus);
+    status = bmp085.begin(nodeTelemetrySensorsMap[sensorType].first, nodeTelemetrySensorsMap[sensorType].second);
 
-    initI2CSensor();
-    return status;
+    return initI2CSensor();
 }
+
+void BMP085Sensor::setup() {}
 
 bool BMP085Sensor::getMetrics(meshtastic_Telemetry *measurement)
 {

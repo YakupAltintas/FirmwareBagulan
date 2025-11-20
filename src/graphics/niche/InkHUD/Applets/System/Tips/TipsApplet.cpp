@@ -73,7 +73,7 @@ void InkHUD::TipsApplet::onRender()
         }
 
         cursorY += fontSmall.lineHeight() * 1.5;
-        printAt(0, cursorY, "More info at meshtastic.org");
+        printAt(0, cursorY, "More info at Bagulan");
 
         setFont(fontSmall);
         printAt(0, Y(1.0), "Press button to continue", LEFT, BOTTOM);
@@ -158,7 +158,7 @@ void InkHUD::TipsApplet::renderWelcome()
     setFont(fontMedium);
     std::string title;
     if (width() >= 200) // Future proofing: hide if *tiny* display
-        title = "meshtastic.org";
+        title = "Bagulan";
     uint16_t titleW = getTextWidth(title);
 
     // Center the block

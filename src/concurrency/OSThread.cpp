@@ -90,9 +90,7 @@ void OSThread::run()
     if (heap < newHeap)
         LOG_HEAP("++++++ Thread %s freed heap %d -> %d (%d) ++++++", ThreadName.c_str(), heap, newHeap, newHeap - heap);
 #endif
-#ifdef DEBUG_LOOP_TIMING
-    LOG_DEBUG("====== Thread next run in: %d", newDelay);
-#endif
+
     runned();
 
     if (newDelay >= 0)

@@ -16,22 +16,23 @@ meshtastic_Nau7802Config nau7802config = meshtastic_Nau7802Config_init_zero;
 
 NAU7802Sensor::NAU7802Sensor() : TelemetrySensor(meshtastic_TelemetrySensorType_NAU7802, "NAU7802") {}
 
-bool NAU7802Sensor::initDevice(TwoWire *bus, ScanI2C::FoundDevice *dev)
+int32_t NAU7802Sensor::runOnce()
 {
     LOG_INFO("Init sensor: %s", sensorName);
-    status = nau7802.begin(*bus);
-    if (!status) {
-        return status;
+    if (!hasSensor()) {
+        return DEFAULT_SENSOR_MINIMUM_WAIT_TIME_BETWEEN_READS;
     }
+    status = nau7802.begin(*nodeTelemetrySensorsMap[sensorType].second);
     nau7802.setSampleRate(NAU7802_SPS_320);
     if (!loadCalibrationData()) {
         LOG_ERROR("Failed to load calibration data");
     }
     nau7802.calibrateAFE();
     LOG_INFO("Offset: %d, Calibration factor: %.2f", nau7802.getZeroOffset(), nau7802.getCalibrationFactor());
-    initI2CSensor();
-    return status;
+    return initI2CSensor();
 }
+
+void NAU7802Sensor::setup() {}
 
 bool NAU7802Sensor::getMetrics(meshtastic_Telemetry *measurement)
 {

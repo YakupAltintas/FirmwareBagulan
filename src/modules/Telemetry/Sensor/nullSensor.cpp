@@ -11,7 +11,7 @@ NullSensor::NullSensor() : TelemetrySensor(meshtastic_TelemetrySensorType_SENSOR
 
 int32_t NullSensor::runOnce()
 {
-    return INT32_MAX;
+    return 0;
 }
 
 void NullSensor::setup() {}

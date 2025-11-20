@@ -9,21 +9,22 @@
 
 DPS310Sensor::DPS310Sensor() : TelemetrySensor(meshtastic_TelemetrySensorType_DPS310, "DPS310") {}
 
-bool DPS310Sensor::initDevice(TwoWire *bus, ScanI2C::FoundDevice *dev)
+int32_t DPS310Sensor::runOnce()
 {
     LOG_INFO("Init sensor: %s", sensorName);
-    status = dps310.begin_I2C(dev->address.address, bus);
-    if (!status) {
-        return status;
+    if (!hasSensor()) {
+        return DEFAULT_SENSOR_MINIMUM_WAIT_TIME_BETWEEN_READS;
     }
+    status = dps310.begin_I2C(nodeTelemetrySensorsMap[sensorType].first, nodeTelemetrySensorsMap[sensorType].second);
 
     dps310.configurePressure(DPS310_1HZ, DPS310_4SAMPLES);
     dps310.configureTemperature(DPS310_1HZ, DPS310_4SAMPLES);
     dps310.setMode(DPS310_CONT_PRESTEMP);
 
-    initI2CSensor();
-    return status;
+    return initI2CSensor();
 }
+
+void DPS310Sensor::setup() {}
 
 bool DPS310Sensor::getMetrics(meshtastic_Telemetry *measurement)
 {

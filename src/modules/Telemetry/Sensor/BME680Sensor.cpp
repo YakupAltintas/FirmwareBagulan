@@ -10,7 +10,7 @@
 
 BME680Sensor::BME680Sensor() : TelemetrySensor(meshtastic_TelemetrySensorType_BME680, "BME680") {}
 
-int32_t BME680Sensor::runOnce()
+int32_t BME680Sensor::runTrigger()
 {
     if (!bme680.run()) {
         checkStatus("runTrigger");
@@ -18,10 +18,13 @@ int32_t BME680Sensor::runOnce()
     return 35;
 }
 
-bool BME680Sensor::initDevice(TwoWire *bus, ScanI2C::FoundDevice *dev)
+int32_t BME680Sensor::runOnce()
 {
-    status = 0;
-    if (!bme680.begin(dev->address.address, *bus))
+
+    if (!hasSensor()) {
+        return DEFAULT_SENSOR_MINIMUM_WAIT_TIME_BETWEEN_READS;
+    }
+    if (!bme680.begin(nodeTelemetrySensorsMap[sensorType].first, *nodeTelemetrySensorsMap[sensorType].second))
         checkStatus("begin");
 
     if (bme680.status == BSEC_OK) {
@@ -37,14 +40,16 @@ bool BME680Sensor::initDevice(TwoWire *bus, ScanI2C::FoundDevice *dev)
         }
         LOG_INFO("Init sensor: %s with the BSEC Library version %d.%d.%d.%d ", sensorName, bme680.version.major,
                  bme680.version.minor, bme680.version.major_bugfix, bme680.version.minor_bugfix);
+    } else {
+        status = 0;
     }
-
     if (status == 0)
         LOG_DEBUG("BME680Sensor::runOnce: bme680.status %d", bme680.status);
 
-    initI2CSensor();
-    return status;
+    return initI2CSensor();
 }
+
+void BME680Sensor::setup() {}
 
 bool BME680Sensor::getMetrics(meshtastic_Telemetry *measurement)
 {

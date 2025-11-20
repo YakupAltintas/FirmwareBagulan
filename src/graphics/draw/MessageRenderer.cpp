@@ -61,6 +61,25 @@ static size_t cachedKey = 0;
 static std::vector<std::string> cachedLines;
 static std::vector<int> cachedHeights;
 
+//Son uc mesaj
+static std::vector<std::string> lastMessages;
+// Track changes and prevent duplicates
+static uint32_t lastMessagesVersion = 0;
+static uint32_t lastAddedId = 0;
+static uint32_t lastAddedRxTime = 0;
+
+// Compute vertical lift based on current font/header height
+static inline int headerLift()
+{
+    // Bottom header bar yüksekliği
+    const int bottomBarHeight = FONT_HEIGHT_SMALL + 2;
+    // Header ile içerik arasında bırakılacak boşluk
+    const int topMargin = FONT_HEIGHT_SMALL / 4; 
+    int lift = bottomBarHeight - topMargin;
+    if (lift < 0) lift = 0;
+    return lift;
+}
+
 void drawStringWithEmotes(OLEDDisplay *display, int x, int y, const std::string &line, const Emote *emotes, int emoteCount)
 {
     int cursorX = x;
@@ -168,7 +187,7 @@ void drawStringWithEmotes(OLEDDisplay *display, int x, int y, const std::string 
             break;
         }
     }
-}
+} // drawStringWithEmotes
 
 void drawTextMessageFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
 {
@@ -177,10 +196,17 @@ void drawTextMessageFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16
 
     const meshtastic_MeshPacket &mp = devicestate.rx_text_message;
     const char *msg = reinterpret_cast<const char *>(mp.decoded.payload.bytes);
-
+    // Only add when this is a new packet (avoid duplicates every frame)
+    if (mp.id != lastAddedId || mp.rx_time != lastAddedRxTime) {
+        addMessage(mp);
+        lastAddedId = mp.id;
+        lastAddedRxTime = mp.rx_time;
+    }
     display->clear();
     display->setTextAlignment(TEXT_ALIGN_LEFT);
     display->setFont(FONT_SMALL);
+    // İçeriği header’dan yukarı almak için font tabanlı lift
+    const int lift = headerLift();
 #if defined(M5STACK_UNITC6L)
     const int fixedTopHeight = 24;
     const int windowX = 0;
@@ -189,31 +215,22 @@ void drawTextMessageFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16
     const int windowHeight = SCREEN_HEIGHT - fixedTopHeight;
 #else
     const int navHeight = FONT_HEIGHT_SMALL;
-    const int scrollBottom = SCREEN_HEIGHT - navHeight;
-    const int usableHeight = scrollBottom;
+    const int bottomBarHeight = FONT_HEIGHT_SMALL + 2;
+    const int usableHeight = SCREEN_HEIGHT - bottomBarHeight;
     const int textWidth = SCREEN_WIDTH;
-
 #endif
     bool isInverted = (config.display.displaymode != meshtastic_Config_DisplayConfig_DisplayMode_INVERTED);
     bool isBold = config.display.heading_bold;
 
     // === Set Title
     const char *titleStr = "Messages";
-
+    
     // Check if we have more than an empty message to show
     char messageBuf[237];
     snprintf(messageBuf, sizeof(messageBuf), "%s", msg);
-    if (strlen(messageBuf) == 0) {
-        // === Header ===
+    // No messages placeholder'ı kaldır: mesaj yoksa içerik çizme
+    if (lastMessages.empty()) {
         graphics::drawCommonHeader(display, x, y, titleStr);
-        const char *messageString = "No messages";
-        int center_text = (SCREEN_WIDTH / 2) - (display->getStringWidth(messageString) / 2);
-#if defined(M5STACK_UNITC6L)
-        display->drawString(center_text, windowY + (windowHeight / 2) - (FONT_HEIGHT_SMALL / 2) - 5, messageString);
-#else
-        display->drawString(center_text, getTextPositions(display)[2], messageString);
-#endif
-        graphics::drawCommonFooter(display, x, y);
         return;
     }
 
@@ -263,40 +280,20 @@ void drawTextMessageFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16
 #if defined(M5STACK_UNITC6L)
     graphics::drawCommonHeader(display, x, y, titleStr);
     int headerY = getTextPositions(display)[1];
-    display->drawString(x, headerY, headerStr);
+    display->drawString(x, headerY - lift, headerStr);
     for (int separatorX = 0; separatorX < SCREEN_WIDTH; separatorX += 2) {
-        display->setPixel(separatorX, fixedTopHeight - 1);
+        display->setPixel(separatorX, fixedTopHeight - 1 - lift);
     }
+    // Sadece son 3 mesajı göster (placeholder yok)
     cachedLines.clear();
-    std::string fullMsg(messageBuf);
-    std::string currentLine;
-    for (size_t i = 0; i < fullMsg.size();) {
-        unsigned char c = fullMsg[i];
-        size_t charLen = 1;
-        if ((c & 0xE0) == 0xC0)
-            charLen = 2;
-        else if ((c & 0xF0) == 0xE0)
-            charLen = 3;
-        else if ((c & 0xF8) == 0xF0)
-            charLen = 4;
-        std::string nextChar = fullMsg.substr(i, charLen);
-        std::string testLine = currentLine + nextChar;
-        if (display->getStringWidth(testLine.c_str()) > windowWidth) {
-            cachedLines.push_back(currentLine);
-            currentLine = nextChar;
-        } else {
-            currentLine = testLine;
-        }
-
-        i += charLen;
-    }
-    if (!currentLine.empty())
-        cachedLines.push_back(currentLine);
+    for (const auto& m : lastMessages) cachedLines.push_back(m);
     cachedHeights = calculateLineHeights(cachedLines, emotes);
-    int yOffset = windowY;
+    
+    //int yOffset = windowY;
+    int yOffset = -lift;
     int linesDrawn = 0;
     for (size_t i = 0; i < cachedLines.size(); ++i) {
-        if (linesDrawn >= 2)
+        if (linesDrawn >= 3)
             break;
         int lineHeight = cachedHeights[i];
         if (yOffset + lineHeight > windowY + windowHeight)
@@ -348,6 +345,8 @@ void drawTextMessageFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16
     currentKey ^= ((size_t)mp.to << 8);
     currentKey ^= ((size_t)mp.rx_time << 16);
     currentKey ^= ((size_t)mp.id << 24);
+    // Include lastMessages changes in the cache key
+    currentKey ^= ((size_t)lastMessagesVersion << 1);
 
     if (cachedKey != currentKey) {
         LOG_INFO("Onscreen message scroll cache key needs updating: cachedKey=0x%0x, currentKey=0x%x", cachedKey, currentKey);
@@ -413,71 +412,66 @@ void drawTextMessageFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16
     }
 
     int scrollOffset = static_cast<int>(scrollY);
-    int yOffset = -scrollOffset + getTextPositions(display)[1];
+    int yOffset = -scrollOffset + getTextPositions(display)[1] - lift;
     for (int separatorX = 1; separatorX <= (display->getStringWidth(headerStr) + 2); separatorX += 2) {
         display->setPixel(separatorX, yOffset + ((isHighResolution) ? 19 : 13));
     }
 
     // === Render visible lines ===
-    renderMessageContent(display, cachedLines, cachedHeights, x, yOffset, scrollBottom, emotes, numEmotes, isInverted, isBold);
+    // Pass correct usable height (not bottomBarHeight)
+    renderMessageContent(display, cachedLines, cachedHeights, x, yOffset, usableHeight, emotes, numEmotes, isInverted, isBold);
 
-    // Draw header at the end to sort out overlapping elements
+    // Draw header at the end (bottom bar)
     graphics::drawCommonHeader(display, x, y, titleStr);
+    
+   
 #endif
-    graphics::drawCommonFooter(display, x, y);
-}
+}  // drawTextMessageFrame
+
+void addMessage(const meshtastic_MeshPacket& mp) {
+    const char* sender = "???";
+    meshtastic_NodeInfoLite* node = nodeDB->getMeshNode(getFrom(&mp));
+    if (node && node->has_user) {
+        sender = node->user.short_name;
+    }
+    
+    uint32_t seconds = sinceReceived(&mp);
+    uint32_t minutes = seconds / 60;
+    uint32_t hours = minutes / 60;
+    uint32_t days = hours / 24;
+    const char* msg = reinterpret_cast<const char*>(mp.decoded.payload.bytes);
+
+    char formattedMsg[128];
+    if (days > 0) {
+        snprintf(formattedMsg, sizeof(formattedMsg), "%s(%ud):%s", sender, days, msg);
+    } else if (hours > 0) {
+        snprintf(formattedMsg, sizeof(formattedMsg), "%s(%uh):%s", sender, hours % 24, msg);
+    } else {
+        snprintf(formattedMsg, sizeof(formattedMsg), "%s(%um):%s", sender, minutes % 60, msg);
+    }
+
+    // Avoid pushing same message twice in a row
+    if (!lastMessages.empty() && lastMessages.back() == formattedMsg) {
+        return;
+    }
+    lastMessages.push_back(std::string(formattedMsg));
+    if (lastMessages.size() > 3) {
+        lastMessages.erase(lastMessages.begin());
+    }
+    ++lastMessagesVersion;
+} // addMessage
 
 std::vector<std::string> generateLines(OLEDDisplay *display, const char *headerStr, const char *messageBuf, int textWidth)
 {
     std::vector<std::string> lines;
     lines.push_back(std::string(headerStr)); // Header line is always first
 
-    std::string line, word;
-    for (int i = 0; messageBuf[i]; ++i) {
-        char ch = messageBuf[i];
-        if ((unsigned char)messageBuf[i] == 0xE2 && (unsigned char)messageBuf[i + 1] == 0x80 &&
-            (unsigned char)messageBuf[i + 2] == 0x99) {
-            ch = '\''; // plain apostrophe
-            i += 2;    // skip over the extra UTF-8 bytes
-        }
-        if (ch == '\n') {
-            if (!word.empty())
-                line += word;
-            if (!line.empty())
-                lines.push_back(line);
-            line.clear();
-            word.clear();
-        } else if (ch == ' ') {
-            line += word + ' ';
-            word.clear();
-        } else {
-            word += ch;
-            std::string test = line + word;
-// Keep these lines for diagnostics
-// LOG_INFO("Char: '%c' (0x%02X)", ch, (unsigned char)ch);
-// LOG_INFO("Current String: %s", test.c_str());
-// Note: there are boolean comparison uint16 (getStringWidth) with int (textWidth), hope textWidth is always positive :)
-#if defined(OLED_UA) || defined(OLED_RU)
-            uint16_t strWidth = display->getStringWidth(test.c_str(), test.length(), true);
-#else
-            uint16_t strWidth = display->getStringWidth(test.c_str());
-#endif
-            if (strWidth > textWidth) {
-                if (!line.empty())
-                    lines.push_back(line);
-                line = word;
-                word.clear();
-            }
-        }
+    // Son 3 mesajı ekle (current zaten addMessage ile lastMessages’e girdi)
+    for (const auto& msg : lastMessages) {
+        lines.push_back(msg);
     }
-
-    if (!word.empty())
-        line += word;
-    if (!line.empty())
-        lines.push_back(line);
-
     return lines;
-}
+} // generateLines
 
 std::vector<int> calculateLineHeights(const std::vector<std::string> &lines, const Emote *emotes)
 {
@@ -506,16 +500,18 @@ std::vector<int> calculateLineHeights(const std::vector<std::string> &lines, con
     }
 
     return rowHeights;
-}
+} // calculateLineHeights
 
 void renderMessageContent(OLEDDisplay *display, const std::vector<std::string> &lines, const std::vector<int> &rowHeights, int x,
-                          int yOffset, int scrollBottom, const Emote *emotes, int numEmotes, bool isInverted, bool isBold)
+                          int yOffset, int usableHeight, const Emote *emotes, int numEmotes, bool isInverted, bool isBold)
 {
+    if (lines.size() != rowHeights.size()) return; // Güvenlik kontrolü eklendi
+
     for (size_t i = 0; i < lines.size(); ++i) {
         int lineY = yOffset;
         for (size_t j = 0; j < i; ++j)
             lineY += rowHeights[j];
-        if (lineY > -rowHeights[i] && lineY < scrollBottom) {
+        if (lineY > -rowHeights[i] && lineY < usableHeight) {
             if (i == 0 && isInverted) {
                 display->drawString(x, lineY, lines[i].c_str());
                 if (isBold)
@@ -525,7 +521,7 @@ void renderMessageContent(OLEDDisplay *display, const std::vector<std::string> &
             }
         }
     }
-}
+} // renderMessageContent
 
 } // namespace MessageRenderer
 } // namespace graphics

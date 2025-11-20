@@ -9,15 +9,20 @@
 
 OPT3001Sensor::OPT3001Sensor() : TelemetrySensor(meshtastic_TelemetrySensorType_OPT3001, "OPT3001") {}
 
-bool OPT3001Sensor::initDevice(TwoWire *bus, ScanI2C::FoundDevice *dev)
+int32_t OPT3001Sensor::runOnce()
 {
     LOG_INFO("Init sensor: %s", sensorName);
-    auto errorCode = opt3001.begin(dev->address.address);
-    status = errorCode == NO_ERROR;
-    if (!status) {
-        return status;
+    if (!hasSensor()) {
+        return DEFAULT_SENSOR_MINIMUM_WAIT_TIME_BETWEEN_READS;
     }
+    auto errorCode = opt3001.begin(nodeTelemetrySensorsMap[sensorType].first);
+    status = errorCode == NO_ERROR;
 
+    return initI2CSensor();
+}
+
+void OPT3001Sensor::setup()
+{
     OPT3001_Config newConfig;
 
     newConfig.RangeNumber = 0b1100;
@@ -29,10 +34,6 @@ bool OPT3001Sensor::initDevice(TwoWire *bus, ScanI2C::FoundDevice *dev)
     if (errorConfig != NO_ERROR) {
         LOG_ERROR("OPT3001 configuration error #%d", errorConfig);
     }
-    status = errorConfig == NO_ERROR;
-
-    initI2CSensor();
-    return status;
 }
 
 bool OPT3001Sensor::getMetrics(meshtastic_Telemetry *measurement)

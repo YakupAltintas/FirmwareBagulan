@@ -9,13 +9,20 @@
 
 SHT31Sensor::SHT31Sensor() : TelemetrySensor(meshtastic_TelemetrySensorType_SHT31, "SHT31") {}
 
-bool SHT31Sensor::initDevice(TwoWire *bus, ScanI2C::FoundDevice *dev)
+int32_t SHT31Sensor::runOnce()
 {
     LOG_INFO("Init sensor: %s", sensorName);
-    sht31 = Adafruit_SHT31(bus);
-    status = sht31.begin(dev->address.address);
-    initI2CSensor();
-    return status;
+    if (!hasSensor()) {
+        return DEFAULT_SENSOR_MINIMUM_WAIT_TIME_BETWEEN_READS;
+    }
+    sht31 = Adafruit_SHT31(nodeTelemetrySensorsMap[sensorType].second);
+    status = sht31.begin(nodeTelemetrySensorsMap[sensorType].first);
+    return initI2CSensor();
+}
+
+void SHT31Sensor::setup()
+{
+    // Set up oversampling and filter initialization
 }
 
 bool SHT31Sensor::getMetrics(meshtastic_Telemetry *measurement)

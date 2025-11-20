@@ -1,5 +1,3 @@
-#include "configuration.h"
-#if HAS_SCREEN
 #include "CompassRenderer.h"
 #include "NodeDB.h"
 #include "UIRenderer.h"
@@ -137,4 +135,3 @@ uint16_t getCompassDiam(uint32_t displayWidth, uint32_t displayHeight)
 
 } // namespace CompassRenderer
 } // namespace graphics
-#endif

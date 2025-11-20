@@ -65,22 +65,13 @@ SerialModuleRadio *serialModuleRadio;
 
 #if defined(TTGO_T_ECHO) || defined(CANARYONE) || defined(MESHLINK) || defined(ELECROW_ThinkNode_M1) ||                          \
     defined(ELECROW_ThinkNode_M5) || defined(HELTEC_MESH_SOLAR) || defined(T_ECHO_LITE)
-SerialModule::SerialModule() : StreamAPI(&Serial), concurrency::OSThread("Serial")
-{
-    api_type = TYPE_SERIAL;
-}
+SerialModule::SerialModule() : StreamAPI(&Serial), concurrency::OSThread("Serial") {}
 static Print *serialPrint = &Serial;
-#elif defined(CONFIG_IDF_TARGET_ESP32C6) || defined(RAK3172) || defined(EBYTE_E77_MBL)
-SerialModule::SerialModule() : StreamAPI(&Serial1), concurrency::OSThread("Serial")
-{
-    api_type = TYPE_SERIAL;
-}
+#elif defined(CONFIG_IDF_TARGET_ESP32C6) || defined(RAK3172)
+SerialModule::SerialModule() : StreamAPI(&Serial1), concurrency::OSThread("Serial") {}
 static Print *serialPrint = &Serial1;
 #else
-SerialModule::SerialModule() : StreamAPI(&Serial2), concurrency::OSThread("Serial")
-{
-    api_type = TYPE_SERIAL;
-}
+SerialModule::SerialModule() : StreamAPI(&Serial2), concurrency::OSThread("Serial") {}
 static Print *serialPrint = &Serial2;
 #endif
 

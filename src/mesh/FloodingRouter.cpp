@@ -1,12 +1,7 @@
 #include "FloodingRouter.h"
-#include "MeshTypes.h"
-#include "NodeDB.h"
+
 #include "configuration.h"
 #include "mesh-pb-constants.h"
-#include "meshUtils.h"
-#if !MESHTASTIC_EXCLUDE_TRACEROUTE
-#include "modules/TraceRouteModule.h"
-#endif
 
 FloodingRouter::FloodingRouter() {}
 
@@ -26,16 +21,7 @@ ErrorCode FloodingRouter::send(meshtastic_MeshPacket *p)
 
 bool FloodingRouter::shouldFilterReceived(const meshtastic_MeshPacket *p)
 {
-    bool wasUpgraded = false;
-    bool seenRecently =
-        wasSeenRecently(p, true, nullptr, nullptr, &wasUpgraded); // Updates history; returns false when an upgrade is detected
-
-    // Handle hop_limit upgrade scenario for rebroadcasters
-    if (wasUpgraded && perhapsHandleUpgradedPacket(p)) {
-        return true; // we handled it, so stop processing
-    }
-
-    if (seenRecently) {
+    if (wasSeenRecently(p)) { // Note: this will also add a recent packet record
         printPacket("Ignore dupe incoming msg", p);
         rxDupe++;
 
@@ -45,10 +31,8 @@ bool FloodingRouter::shouldFilterReceived(const meshtastic_MeshPacket *p)
         if (isRepeated) {
             LOG_DEBUG("Repeated reliable tx");
             // Check if it's still in the Tx queue, if not, we have to relay it again
-            if (!findInTxQueue(p->from, p->id)) {
-                reprocessPacket(p);
+            if (!findInTxQueue(p->from, p->id))
                 perhapsRebroadcast(p);
-            }
         } else {
             perhapsCancelDupe(p);
         }
@@ -59,45 +43,12 @@ bool FloodingRouter::shouldFilterReceived(const meshtastic_MeshPacket *p)
     return Router::shouldFilterReceived(p);
 }
 
-bool FloodingRouter::perhapsHandleUpgradedPacket(const meshtastic_MeshPacket *p)
-{
-    // isRebroadcaster() is duplicated in perhapsRebroadcast(), but this avoids confusing log messages
-    if (isRebroadcaster() && iface && p->hop_limit > 0) {
-        // If we overhear a duplicate copy of the packet with more hops left than the one we are waiting to
-        // rebroadcast, then remove the packet currently sitting in the TX queue and use this one instead.
-        uint8_t dropThreshold = p->hop_limit; // remove queued packets that have fewer hops remaining
-        if (iface->removePendingTXPacket(getFrom(p), p->id, dropThreshold)) {
-            LOG_DEBUG("Processing upgraded packet 0x%08x for rebroadcast with hop limit %d (dropping queued < %d)", p->id,
-                      p->hop_limit, dropThreshold);
-
-            reprocessPacket(p);
-            perhapsRebroadcast(p);
-
-            rxDupe++;
-            // We already enqueued the improved copy, so make sure the incoming packet stops here.
-            return true;
-        }
-    }
-
-    return false;
-}
-
-void FloodingRouter::reprocessPacket(const meshtastic_MeshPacket *p)
-{
-    if (nodeDB)
-        nodeDB->updateFrom(*p);
-#if !MESHTASTIC_EXCLUDE_TRACEROUTE
-    if (traceRouteModule && p->which_payload_variant == meshtastic_MeshPacket_decoded_tag &&
-        p->decoded.portnum == meshtastic_PortNum_TRACEROUTE_APP)
-        traceRouteModule->processUpgradedPacket(*p);
-#endif
-}
-
 bool FloodingRouter::roleAllowsCancelingDupe(const meshtastic_MeshPacket *p)
 {
     if (config.device.role == meshtastic_Config_DeviceConfig_Role_ROUTER ||
+        config.device.role == meshtastic_Config_DeviceConfig_Role_REPEATER ||
         config.device.role == meshtastic_Config_DeviceConfig_Role_ROUTER_LATE) {
-        // ROUTER, ROUTER_LATE should never cancel relaying a packet (i.e. we should always rebroadcast),
+        // ROUTER, REPEATER, ROUTER_LATE should never cancel relaying a packet (i.e. we should always rebroadcast),
         // even if we've heard another station rebroadcast it already.
         return false;
     }
@@ -116,7 +67,7 @@ bool FloodingRouter::roleAllowsCancelingDupe(const meshtastic_MeshPacket *p)
 void FloodingRouter::perhapsCancelDupe(const meshtastic_MeshPacket *p)
 {
     if (p->transport_mechanism == meshtastic_MeshPacket_TransportMechanism_TRANSPORT_LORA && roleAllowsCancelingDupe(p)) {
-        // cancel rebroadcast of this message *if* there was already one, unless we're a router!
+        // cancel rebroadcast of this message *if* there was already one, unless we're a router/repeater!
         // But only LoRa packets should be able to trigger this.
         if (Router::cancelSending(p->from, p->id))
             txRelayCanceled++;
@@ -130,6 +81,36 @@ bool FloodingRouter::isRebroadcaster()
 {
     return config.device.role != meshtastic_Config_DeviceConfig_Role_CLIENT_MUTE &&
            config.device.rebroadcast_mode != meshtastic_Config_DeviceConfig_RebroadcastMode_NONE;
+}
+
+void FloodingRouter::perhapsRebroadcast(const meshtastic_MeshPacket *p)
+{
+    if (!isToUs(p) && (p->hop_limit > 0) && !isFromUs(p)) {
+        if (p->id != 0) {
+            if (isRebroadcaster()) {
+                meshtastic_MeshPacket *tosend = packetPool.allocCopy(*p); // keep a copy because we will be sending it
+
+                tosend->hop_limit--; // bump down the hop count
+#if USERPREFS_EVENT_MODE
+                if (tosend->hop_limit > 2) {
+                    // if we are "correcting" the hop_limit, "correct" the hop_start by the same amount to preserve hops away.
+                    tosend->hop_start -= (tosend->hop_limit - 2);
+                    tosend->hop_limit = 2;
+                }
+#endif
+                tosend->next_hop = NO_NEXT_HOP_PREFERENCE; // this should already be the case, but just in case
+
+                LOG_INFO("Rebroadcast received floodmsg");
+                // Note: we are careful to resend using the original senders node id
+                // We are careful not to call our hooked version of send() - because we don't want to check this again
+                Router::send(tosend);
+            } else {
+                LOG_DEBUG("No rebroadcast: Role = CLIENT_MUTE or Rebroadcast Mode = NONE");
+            }
+        } else {
+            LOG_DEBUG("Ignore 0 id broadcast");
+        }
+    }
 }
 
 void FloodingRouter::sniffReceived(const meshtastic_MeshPacket *p, const meshtastic_Routing *c)

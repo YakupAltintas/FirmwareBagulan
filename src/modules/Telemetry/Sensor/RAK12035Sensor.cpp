@@ -6,12 +6,16 @@
 
 RAK12035Sensor::RAK12035Sensor() : TelemetrySensor(meshtastic_TelemetrySensorType_RAK12035, "RAK12035") {}
 
-bool RAK12035Sensor::initDevice(TwoWire *bus, ScanI2C::FoundDevice *dev)
+int32_t RAK12035Sensor::runOnce()
 {
+    if (!hasSensor()) {
+        return DEFAULT_SENSOR_MINIMUM_WAIT_TIME_BETWEEN_READS;
+    }
+
     // TODO:: check for up to 2 additional sensors and start them if present.
     sensor.set_sensor_addr(RAK120351_ADDR);
     delay(100);
-    sensor.begin(dev->address.address);
+    sensor.begin(nodeTelemetrySensorsMap[sensorType].first);
 
     // Get sensor firmware version
     uint8_t data = 0;
@@ -27,13 +31,8 @@ bool RAK12035Sensor::initDevice(TwoWire *bus, ScanI2C::FoundDevice *dev)
         LOG_ERROR("RAK12035Sensor Init Failed");
         status = false;
     }
-    if (!status) {
-        return status;
-    }
-    setup();
 
-    initI2CSensor();
-    return status;
+    return initI2CSensor();
 }
 
 void RAK12035Sensor::setup()

@@ -1,6 +1,6 @@
 #pragma once
 
-// This is a version of RotaryEncoder which is based on a debounce inherent FSM table (see RotaryEncoder library)
+// This is a non-interrupt version of RotaryEncoder which is based on a debounce inherent FSM table (see RotaryEncoder library)
 
 #include "InputBroker.h"
 #include "concurrency/OSThread.h"
@@ -8,21 +8,21 @@
 
 class RotaryEncoder;
 
-class RotaryEncoderImpl : public InputPollable
+class RotaryEncoderImpl : public Observable<const InputEvent *>, public concurrency::OSThread
 {
   public:
     RotaryEncoderImpl();
     bool init(void);
-    virtual void pollOnce() override;
 
   protected:
-    static RotaryEncoderImpl *interruptInstance;
+    virtual int32_t runOnce() override;
 
     input_broker_event eventCw = INPUT_BROKER_NONE;
     input_broker_event eventCcw = INPUT_BROKER_NONE;
     input_broker_event eventPressed = INPUT_BROKER_NONE;
 
     RotaryEncoder *rotary;
+    const char *originName;
 };
 
 extern RotaryEncoderImpl *rotaryEncoderImpl;

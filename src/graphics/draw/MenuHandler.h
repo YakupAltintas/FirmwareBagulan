@@ -12,7 +12,6 @@ class menuHandler
         lora_Menu,
         lora_picker,
         device_role_picker,
-        radio_preset_picker,
         no_timeout_lora_picker,
         TZ_picker,
         twelve_hour_picker,
@@ -43,9 +42,7 @@ class menuHandler
         key_verification_final_prompt,
         trace_route_menu,
         throttle_message,
-        node_name_length_menu,
-        FrameToggles,
-        DisplayUnits
+        FrameToggles
     };
     static screenMenus menuQueue;
 
@@ -53,7 +50,6 @@ class menuHandler
     static void LoraRegionPicker(uint32_t duration = 30000);
     static void loraMenu();
     static void DeviceRolePicker();
-    static void RadioPresetPicker();
     static void handleMenuSwitch(OLEDDisplay *display);
     static void showConfirmationBanner(const char *message, std::function<void()> onConfirm);
     static void clockMenu();
@@ -87,9 +83,7 @@ class menuHandler
     static void notificationsMenu();
     static void screenOptionsMenu();
     static void powerMenu();
-    static void nodeNameLengthMenu();
     static void FrameToggles_menu();
-    static void DisplayUnits_menu();
     static void textMessageMenu();
 
   private:

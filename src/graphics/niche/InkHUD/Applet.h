@@ -127,7 +127,8 @@ class Applet : public GFX
 
     // Meshtastic Logo
 
-    static constexpr float LOGO_ASPECT_RATIO = 1.9;                    // Width:Height for drawing the Meshtastic logo
+  // Yeni logo oranı (Custom logo 50x28)
+  static constexpr float LOGO_ASPECT_RATIO = 50.0f / 28.0f;          // Width:Height for drawing the logo
     uint16_t getLogoWidth(uint16_t limitWidth, uint16_t limitHeight);  // Size Meshtastic logo to fit within region
     uint16_t getLogoHeight(uint16_t limitWidth, uint16_t limitHeight); // Size Meshtastic logo to fit within region
     void drawLogo(int16_t centerX, int16_t centerY, uint16_t width, uint16_t height,

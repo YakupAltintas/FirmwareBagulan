@@ -6,25 +6,20 @@
 
 using namespace NicheGraphics;
 
+#include "../../Branding/CustomLogo.h"
+
 InkHUD::LogoApplet::LogoApplet() : concurrency::OSThread("LogoApplet")
 {
-    OSThread::setIntervalFromNow(8 * 1000UL);
+    // Show the splash for a shorter, predictable time to avoid lingering on boot
+    // Reduce from 8s to ~3s to improve perceived boot performance and prevent stalls
+    OSThread::setIntervalFromNow(3 * 1000UL);
     OSThread::enabled = true;
 
-    // During onboarding, show the default short name as well as the version string
-    // This behavior assists manufacturers during mass production, and should not be modified without good reason
-    if (!settings->tips.safeShutdownSeen) {
-        meshtastic_NodeInfoLite *ourNode = nodeDB->getMeshNode(nodeDB->getNodeNum());
-        fontTitle = fontMedium;
-        textLeft = xstr(APP_VERSION_SHORT);
-        textRight = parseShortName(ourNode);
-        textTitle = "Meshtastic";
-    } else {
-        fontTitle = fontSmall;
-        textLeft = "";
-        textRight = "";
-        textTitle = xstr(APP_VERSION_SHORT);
-    }
+    // Sade boot ekranı: sadece logo ve "Bagulan" başlığı
+    fontTitle = fontMedium;
+    textLeft = "";
+    textRight = "";
+    textTitle = "Bagulan";
 
     bringToForeground();
     // This is then drawn with a FULL refresh by Renderer::begin
@@ -52,51 +47,13 @@ void InkHUD::LogoApplet::onRender()
         setTextColor(WHITE);
     }
 
-#ifdef USERPREFS_OEM_IMAGE_DATA // Custom boot screen, if defined in userPrefs.jsonc
+    // Yeni marka: her zaman ortak drawLogo() kullan
+    // drawLogo artık Branding::CustomLogo bitmapini ölçekleyerek çizer
 
-    // Only show the custom screen at startup
-    // This allows us to draw the usual Meshtastic logo at shutdown
-    // The effect is similar to the two-stage userPrefs boot screen used by BaseUI
-    if (millis() < 10 * 1000UL) {
-
-        // Draw the custom logo
-        const uint8_t logo[] = USERPREFS_OEM_IMAGE_DATA;
-        drawXBitmap(logoCX - (USERPREFS_OEM_IMAGE_WIDTH / 2),  //  Left
-                    logoCY - (USERPREFS_OEM_IMAGE_HEIGHT / 2), // Top
-                    logo,                                      // XBM data
-                    USERPREFS_OEM_IMAGE_WIDTH,                 // Width
-                    USERPREFS_OEM_IMAGE_HEIGHT,                // Height
-                    inverted ? WHITE : BLACK                   // Color
-        );
-
-        // Select the largest font which will still comfortably fit the custom text
-        setFont(fontLarge);
-        if (getTextWidth(USERPREFS_OEM_TEXT) > 0.8 * width())
-            setFont(fontMedium);
-        if (getTextWidth(USERPREFS_OEM_TEXT) > 0.8 * width())
-            setFont(fontSmall);
-
-        // Draw custom text below logo
-        int16_t logoB = logoCY + (USERPREFS_OEM_IMAGE_HEIGHT / 2); // Bottom of the logo
-        printAt(X(0.5), logoB + Y(0.1), USERPREFS_OEM_TEXT, CENTER, TOP);
-
-        // Don't draw the normal boot screen, we've already drawn our custom version
-        return;
-    }
-
-#endif
-
+    // Varsayılan Meshtastic logosu
     drawLogo(logoCX, logoCY, logoW, logoH, inverted ? WHITE : BLACK);
 
-    if (!textLeft.empty()) {
-        setFont(fontSmall);
-        printAt(0, 0, textLeft, LEFT, TOP);
-    }
-
-    if (!textRight.empty()) {
-        setFont(fontSmall);
-        printAt(X(1), 0, textRight, RIGHT, TOP);
-    }
+    // Sol/sağ üst yazıları artık göstermiyoruz (sadece logo + başlık)
 
     if (!textTitle.empty()) {
         int16_t logoB = logoCY + (logoH / 2); // Bottom of the logo
@@ -170,7 +127,10 @@ void InkHUD::LogoApplet::onReboot()
 
 int32_t InkHUD::LogoApplet::runOnce()
 {
+    // Hide the splash and immediately force a redraw to transition into normal UI
     sendToBackground();
+    // Extra safety: if onBackground wasn't enough due to timing, ensure a FULL update happens now
+    inkhud->forceUpdate(Drivers::EInk::FULL, false);
     return OSThread::disable();
 }
 

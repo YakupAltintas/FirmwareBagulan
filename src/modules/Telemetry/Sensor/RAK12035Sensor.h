@@ -16,14 +16,13 @@ class RAK12035Sensor : public TelemetrySensor
 {
   private:
     RAK12035 sensor;
-    void setup();
+
+  protected:
+    virtual void setup() override;
 
   public:
     RAK12035Sensor();
-#if WIRE_INTERFACES_COUNT > 1
-    virtual bool onlyWire1() { return true; }
-#endif
+    virtual int32_t runOnce() override;
     virtual bool getMetrics(meshtastic_Telemetry *measurement) override;
-    virtual bool initDevice(TwoWire *bus, ScanI2C::FoundDevice *dev) override;
 };
 #endif

@@ -9,13 +9,19 @@
 
 SHTC3Sensor::SHTC3Sensor() : TelemetrySensor(meshtastic_TelemetrySensorType_SHTC3, "SHTC3") {}
 
-bool SHTC3Sensor::initDevice(TwoWire *bus, ScanI2C::FoundDevice *dev)
+int32_t SHTC3Sensor::runOnce()
 {
     LOG_INFO("Init sensor: %s", sensorName);
-    status = shtc3.begin(bus);
+    if (!hasSensor()) {
+        return DEFAULT_SENSOR_MINIMUM_WAIT_TIME_BETWEEN_READS;
+    }
+    status = shtc3.begin(nodeTelemetrySensorsMap[sensorType].second);
+    return initI2CSensor();
+}
 
-    initI2CSensor();
-    return status;
+void SHTC3Sensor::setup()
+{
+    // Set up oversampling and filter initialization
 }
 
 bool SHTC3Sensor::getMetrics(meshtastic_Telemetry *measurement)

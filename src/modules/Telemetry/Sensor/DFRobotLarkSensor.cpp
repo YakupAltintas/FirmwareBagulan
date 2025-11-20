@@ -11,10 +11,14 @@
 
 DFRobotLarkSensor::DFRobotLarkSensor() : TelemetrySensor(meshtastic_TelemetrySensorType_DFROBOT_LARK, "DFROBOT_LARK") {}
 
-bool DFRobotLarkSensor::initDevice(TwoWire *bus, ScanI2C::FoundDevice *dev)
+int32_t DFRobotLarkSensor::runOnce()
 {
     LOG_INFO("Init sensor: %s", sensorName);
-    lark = DFRobot_LarkWeatherStation_I2C(dev->address.address, bus);
+    if (!hasSensor()) {
+        return DEFAULT_SENSOR_MINIMUM_WAIT_TIME_BETWEEN_READS;
+    }
+
+    lark = DFRobot_LarkWeatherStation_I2C(nodeTelemetrySensorsMap[sensorType].first, nodeTelemetrySensorsMap[sensorType].second);
 
     if (lark.begin() == 0) // DFRobotLarkSensor init
     {
@@ -24,9 +28,10 @@ bool DFRobotLarkSensor::initDevice(TwoWire *bus, ScanI2C::FoundDevice *dev)
         LOG_ERROR("DFRobotLarkSensor Init Failed");
         status = false;
     }
-    initI2CSensor();
-    return status;
+    return initI2CSensor();
 }
+
+void DFRobotLarkSensor::setup() {}
 
 bool DFRobotLarkSensor::getMetrics(meshtastic_Telemetry *measurement)
 {

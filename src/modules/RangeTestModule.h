@@ -44,11 +44,6 @@ class RangeTestModuleRadio : public SinglePortModule
      */
     bool appendFile(const meshtastic_MeshPacket &mp);
 
-    /**
-     * Cleanup range test data from filesystem
-     */
-    bool removeFile();
-
   protected:
     /** Called to handle a particular incoming message
 

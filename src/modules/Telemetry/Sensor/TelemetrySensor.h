@@ -6,7 +6,6 @@
 #include "../mesh/generated/meshtastic/telemetry.pb.h"
 #include "MeshModule.h"
 #include "NodeDB.h"
-#include "detect/ScanI2C.h"
 #include <utility>
 
 #if !ARCH_PORTDUINO
@@ -43,32 +42,22 @@ class TelemetrySensor
         initialized = true;
         return DEFAULT_SENSOR_MINIMUM_WAIT_TIME_BETWEEN_READS;
     }
-
-    // TODO: check is setup used at all?
-    virtual void setup() {}
+    virtual void setup() = 0;
 
   public:
-    virtual ~TelemetrySensor() {}
-
     virtual AdminMessageHandleResult handleAdminMessage(const meshtastic_MeshPacket &mp, meshtastic_AdminMessage *request,
                                                         meshtastic_AdminMessage *response)
     {
         return AdminMessageHandleResult::NOT_HANDLED;
     }
 
-    // TODO: delete after migration
     bool hasSensor() { return nodeTelemetrySensorsMap[sensorType].first > 0; }
 
-#if WIRE_INTERFACES_COUNT > 1
-    // Set to true if Implementation only works first I2C port (Wire)
-    virtual bool onlyWire1() { return false; }
-#endif
-    virtual int32_t runOnce() { return INT32_MAX; }
+    virtual int32_t runOnce() = 0;
     virtual bool isInitialized() { return initialized; }
     virtual bool isRunning() { return status > 0; }
 
     virtual bool getMetrics(meshtastic_Telemetry *measurement) = 0;
-    virtual bool initDevice(TwoWire *bus, ScanI2C::FoundDevice *dev) { return false; };
 };
 
 #endif

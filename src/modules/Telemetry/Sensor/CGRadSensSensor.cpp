@@ -14,15 +14,21 @@
 
 CGRadSensSensor::CGRadSensSensor() : TelemetrySensor(meshtastic_TelemetrySensorType_RADSENS, "RadSens") {}
 
-bool CGRadSensSensor::initDevice(TwoWire *bus, ScanI2C::FoundDevice *dev)
+int32_t CGRadSensSensor::runOnce()
 {
     // Initialize the sensor following the same pattern as RCWL9620Sensor
     LOG_INFO("Init sensor: %s", sensorName);
+    if (!hasSensor()) {
+        return DEFAULT_SENSOR_MINIMUM_WAIT_TIME_BETWEEN_READS;
+    }
+
     status = true;
-    begin(bus, dev->address.address);
-    initI2CSensor();
-    return status;
+    begin(nodeTelemetrySensorsMap[sensorType].second, nodeTelemetrySensorsMap[sensorType].first);
+
+    return initI2CSensor();
 }
+
+void CGRadSensSensor::setup() {}
 
 void CGRadSensSensor::begin(TwoWire *wire, uint8_t addr)
 {

@@ -28,9 +28,6 @@ static BLEDfuSecure bledfusecure;                                             //
 static uint8_t fromRadioBytes[meshtastic_FromRadio_size];
 static uint8_t toRadioBytes[meshtastic_ToRadio_size];
 
-// Last ToRadio value received from the phone
-static uint8_t lastToRadio[MAX_TO_FROM_RADIO_SIZE];
-
 static uint16_t connectionHandle;
 
 class BluetoothPhoneAPI : public PhoneAPI
@@ -48,9 +45,6 @@ class BluetoothPhoneAPI : public PhoneAPI
 
     /// Check the current underlying physical link to see if the client is currently connected
     virtual bool checkIsConnected() override { return Bluefruit.connected(connectionHandle); }
-
-  public:
-    BluetoothPhoneAPI() { api_type = TYPE_BLE; }
 };
 
 static BluetoothPhoneAPI *bluetoothPhoneAPI;
@@ -79,9 +73,6 @@ void onDisconnect(uint16_t conn_handle, uint8_t reason)
     if (bluetoothPhoneAPI) {
         bluetoothPhoneAPI->close();
     }
-
-    // Clear the last ToRadio packet buffer to avoid rejecting first packet from new connection
-    memset(lastToRadio, 0, sizeof(lastToRadio));
 
     // Notify UI (or any other interested firmware components)
     meshtastic::BluetoothStatus newStatus(meshtastic::BluetoothStatus::ConnectionState::DISCONNECTED);
@@ -154,6 +145,8 @@ void onFromRadioAuthorize(uint16_t conn_hdl, BLECharacteristic *chr, ble_gatts_e
     }
     authorizeRead(conn_hdl);
 }
+// Last ToRadio value received from the phone
+static uint8_t lastToRadio[MAX_TO_FROM_RADIO_SIZE];
 
 void onToRadioWrite(uint16_t conn_hdl, BLECharacteristic *chr, uint8_t *data, uint16_t len)
 {
@@ -338,8 +331,7 @@ bool NRF52Bluetooth::onPairingPasskey(uint16_t conn_handle, uint8_t const passke
     meshtastic::BluetoothStatus newStatus(textkey);
     bluetoothStatus->updateStatus(&newStatus);
 
-#if HAS_SCREEN &&                                                                                                                \
-    !defined(MESHTASTIC_EXCLUDE_SCREEN) // Todo: migrate this display code back into Screen class, and observe bluetoothStatus
+#if !defined(MESHTASTIC_EXCLUDE_SCREEN) // Todo: migrate this display code back into Screen class, and observe bluetoothStatus
     if (screen) {
         screen->startAlert([](OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y) -> void {
             char btPIN[16] = "888888";

@@ -19,6 +19,7 @@ class Screen;
  */
 namespace NodeListRenderer
 {
+    void drawNoSignalNodeListScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y);
 // Entry renderer function types
 typedef void (*EntryRenderer)(OLEDDisplay *, meshtastic_NodeInfoLite *, int16_t, int16_t, int);
 typedef void (*NodeExtrasRenderer)(OLEDDisplay *, meshtastic_NodeInfoLite *, int16_t, int16_t, int, float, double, double);

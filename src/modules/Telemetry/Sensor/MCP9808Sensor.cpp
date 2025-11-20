@@ -9,17 +9,19 @@
 
 MCP9808Sensor::MCP9808Sensor() : TelemetrySensor(meshtastic_TelemetrySensorType_MCP9808, "MCP9808") {}
 
-bool MCP9808Sensor::initDevice(TwoWire *bus, ScanI2C::FoundDevice *dev)
+int32_t MCP9808Sensor::runOnce()
 {
     LOG_INFO("Init sensor: %s", sensorName);
-    status = mcp9808.begin(dev->address.address, bus);
-    if (!status) {
-        return status;
+    if (!hasSensor()) {
+        return DEFAULT_SENSOR_MINIMUM_WAIT_TIME_BETWEEN_READS;
     }
-    mcp9808.setResolution(2);
+    status = mcp9808.begin(nodeTelemetrySensorsMap[sensorType].first, nodeTelemetrySensorsMap[sensorType].second);
+    return initI2CSensor();
+}
 
-    initI2CSensor();
-    return status;
+void MCP9808Sensor::setup()
+{
+    mcp9808.setResolution(2);
 }
 
 bool MCP9808Sensor::getMetrics(meshtastic_Telemetry *measurement)
