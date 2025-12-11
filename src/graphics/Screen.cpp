@@ -947,7 +947,7 @@ void Screen::setFrames(FrameFocus focus)
     size_t numframes = 0;
 
   
-//Saat Ekrani
+# //Saat Ekrani
 #if defined(DISPLAY_CLOCK_FRAME)
     if (!hiddenFrames.clock) {
         fsi.positions.clock = numframes;
@@ -958,6 +958,13 @@ void Screen::setFrames(FrameFocus focus)
                                                                  : graphics::ClockRenderer::drawDigitalClockFrame;
 #endif
         indicatorIcons.push_back(digital_icon_clock);
+
+    // System frame immediately after clock
+    if (!hiddenFrames.system) {
+        fsi.positions.system = numframes;
+        normalFrames[numframes++] = graphics::DebugRenderer::drawSystemScreen;
+        indicatorIcons.push_back(icon_system);
+    }
     }
 #endif
 
@@ -973,12 +980,12 @@ void Screen::setFrames(FrameFocus focus)
     // Declare this early so it’s available in FOCUS_PRESERVE block
     bool willInsertTextMessage = shouldDrawMessage(&devicestate.rx_text_message);
 
-    //Ana Ekran
-    if (!hiddenFrames.home) {
-        fsi.positions.home = numframes;
-        normalFrames[numframes++] = graphics::UIRenderer::drawDeviceFocused;
-        indicatorIcons.push_back(icon_home);
-    }
+    //Ana Ekran (Home) disabled - kept for reference
+    // if (!hiddenFrames.home) {
+    //     fsi.positions.home = numframes;
+    //     normalFrames[numframes++] = graphics::UIRenderer::drawDeviceFocused;
+    //     indicatorIcons.push_back(icon_home);
+    // }
 
     //Mesajlar Ekrani
     fsi.positions.textMessage = numframes;
@@ -1030,17 +1037,20 @@ void Screen::setFrames(FrameFocus focus)
     //     indicatorIcons.push_back(icon_radio);
     // }
 #endif
-    if (!hiddenFrames.system) {
-        fsi.positions.system = numframes;
-        normalFrames[numframes++] = graphics::DebugRenderer::drawSystemScreen;
-        indicatorIcons.push_back(icon_system);
-    }
+    // System frame will be added immediately after clock (handled above/below)
 #if !defined(DISPLAY_CLOCK_FRAME)
     if (!hiddenFrames.clock) {
         fsi.positions.clock = numframes;
         normalFrames[numframes++] = uiconfig.is_clockface_analog ? graphics::ClockRenderer::drawAnalogClockFrame
                                                                  : graphics::ClockRenderer::drawDigitalClockFrame;
         indicatorIcons.push_back(digital_icon_clock);
+
+        // System frame immediately after clock
+        if (!hiddenFrames.system) {
+            fsi.positions.system = numframes;
+            normalFrames[numframes++] = graphics::DebugRenderer::drawSystemScreen;
+            indicatorIcons.push_back(icon_system);
+        }
     }
 #endif
     if (!hiddenFrames.chirpy) {

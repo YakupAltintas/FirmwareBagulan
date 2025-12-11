@@ -444,188 +444,135 @@ void drawLoRaFocused(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x,
 // ****************************
 void drawSystemScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
 {
+    // Display Home screen content (Device info)
     display->clear();
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
     display->setFont(FONT_SMALL);
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
 
-    // === Set Title
-    const char *titleStr = "System";
+    const int spacing = (FONT_HEIGHT_SMALL * 4) / 5;
+    int yCur = getTextPositions(display)[1] - FONT_HEIGHT_SMALL;
+    if (yCur < 0)
+        yCur = 0;
 
-    // === Header ===
-    graphics::drawCommonHeader(display, x, y, titleStr);
-
-    // === Layout ===
-    int line = 1;
-    // Ensure nameX/textWidth are defined for later centered text calculations
-    int textWidth = 0;
-    int nameX = 0;
-    const int barHeight = 6;
-    const int labelX = x;
-    int barsOffset = (isHighResolution) ? 24 : 0;
-#ifdef USE_EINK
-    barsOffset -= 12;
-#endif
-#if defined(M5STACK_UNITC6L)
-    const int barX = x + 45 + barsOffset;
-#else
-    const int barX = x + 40 + barsOffset;
-#endif
-    auto drawUsageRow = [&](const char *label, uint32_t used, uint32_t total, bool isHeap = false) {
-        if (total == 0)
+    auto drawCentered = [&](const char *text, int16_t yPos) {
+        if (!text)
             return;
-
-        int percent = (used * 100) / total;
-
-        char combinedStr[24];
-        if (isHighResolution) {
-            snprintf(combinedStr, sizeof(combinedStr), "%s%3d%%  %u/%uKB", (percent > 80) ? "! " : "", percent, used / 1024,
-                     total / 1024);
-        } else {
-            snprintf(combinedStr, sizeof(combinedStr), "%s%3d%%", (percent > 80) ? "! " : "", percent);
-        }
-
-        int textWidth = display->getStringWidth(combinedStr);
-        int adjustedBarWidth = SCREEN_WIDTH - barX - textWidth - 6;
-        if (adjustedBarWidth < 10)
-            adjustedBarWidth = 10;
-
-        int fillWidth = (used * adjustedBarWidth) / total;
-
-        // Label
+        int16_t w = display->getStringWidth(text);
+        int16_t left = x + (display->getWidth() - w) / 2;
         display->setTextAlignment(TEXT_ALIGN_LEFT);
-        display->drawString(labelX, getTextPositions(display)[line], label);
-#if !defined(M5STACK_UNITC6L)
-        // Bar
-        int barY = getTextPositions(display)[line] + (FONT_HEIGHT_SMALL - barHeight) / 2;
-        display->setColor(WHITE);
-        display->drawRect(barX, barY, adjustedBarWidth, barHeight);
-
-        display->fillRect(barX, barY, fillWidth, barHeight);
-        display->setColor(WHITE);
-#endif
-        // Value string
-        display->setTextAlignment(TEXT_ALIGN_RIGHT);
-        display->drawString(SCREEN_WIDTH - 2, getTextPositions(display)[line], combinedStr);
+        display->drawString(left, yPos, text);
     };
 
-    // === Memory values ===
-    uint32_t heapUsed = memGet.getHeapSize() - memGet.getFreeHeap();
-    uint32_t heapTotal = memGet.getHeapSize();
-
-    uint32_t psramUsed = memGet.getPsramSize() - memGet.getFreePsram();
-    uint32_t psramTotal = memGet.getPsramSize();
-
-    uint32_t flashUsed = 0, flashTotal = 0;
-#ifdef ESP32
-    flashUsed = FSCom.usedBytes();
-    flashTotal = FSCom.totalBytes();
-#endif
-
-    uint32_t sdUsed = 0, sdTotal = 0;
-    bool hasSD = false;
-    /*
-    #ifdef HAS_SDCARD
-        hasSD = SD.cardType() != CARD_NONE;
-        if (hasSD) {
-            sdUsed = SD.usedBytes();
-            sdTotal = SD.totalBytes();
-        }
-    #endif
-    */
-    // === Draw memory rows
-    drawUsageRow("Heap:", heapUsed, heapTotal, true);
-#ifdef ESP32
-    if (psramUsed > 0) {
-        line += 1;
-        drawUsageRow("PSRAM:", psramUsed, psramTotal);
-    }
-    if (flashTotal > 0) {
-        line += 1;
-        drawUsageRow("Flash:", flashUsed, flashTotal);
-    }
-     // --- Static hint under the heap/uptime area ---
-    // Draw a centered small-font hint that says "Long Press For Menu" just below the
-    // stats area. This is purely visual (no behavior attached).
-    display->setFont(FONT_SMALL);
-    display->setTextAlignment(TEXT_ALIGN_CENTER);
-    const char *hint = "Long Press For Menu";
-    int hintLine = line + 1; // position the hint after the last drawn line
-    if (hintLine > 5)
-        hintLine = 5; // clamp into getTextPositions range
-    int hintY = getTextPositions(display)[hintLine];
-    // fallback: ensure it's visible and inside the screen
-    if (hintY < 0 || hintY > (SCREEN_HEIGHT - FONT_HEIGHT_SMALL))
-        hintY = SCREEN_HEIGHT - FONT_HEIGHT_SMALL - 1;
-    // Ensure color is white so the text is visible against the background
-    display->setColor(WHITE);
-    display->drawString(SCREEN_WIDTH / 2, hintY, hint);
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
-#endif
-    if (hasSD && sdTotal > 0) {
-        line += 1;
-        drawUsageRow("SD:", sdUsed, sdTotal);
-    }
-
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
-    // System Uptime
-    if (line < 2) {
-        line += 1;
-    }
-    line += 1;
-
-    // Ensure appversionstr is initialized to avoid garbage characters on screen
-    char appversionstr[35] = {0};
-    // If you have a build-time version macro, fill it here e.g.:
-    // snprintf(appversionstr, sizeof(appversionstr), "Ver: %s", optstr(APP_VERSION));
-    char appversionstr_formatted[40] = {0};
-
-    if (appversionstr[0] != '\0') {
-        char *lastDot = strrchr(appversionstr, '.');
+    // === Header ===
 #if defined(M5STACK_UNITC6L)
-        if (lastDot != nullptr) {
-            *lastDot = '\0'; // truncate string
-        }
+    graphics::drawCommonHeader(display, x, y, "Home");
 #else
-        if (lastDot) {
-            size_t prefixLen = lastDot - appversionstr;
-            strncpy(appversionstr_formatted, appversionstr, prefixLen);
-            appversionstr_formatted[prefixLen] = '\0';
-            strncat(appversionstr_formatted, " (", sizeof(appversionstr_formatted) - strlen(appversionstr_formatted) - 1);
-            strncat(appversionstr_formatted, lastDot + 1, sizeof(appversionstr_formatted) - strlen(appversionstr_formatted) - 1);
-            strncat(appversionstr_formatted, ")", sizeof(appversionstr_formatted) - strlen(appversionstr_formatted) - 1);
-            strncpy(appversionstr, appversionstr_formatted, sizeof(appversionstr) - 1);
-            appversionstr[sizeof(appversionstr) - 1] = '\0';
-        }
+    graphics::drawCommonHeader(display, x, y, "");
 #endif
+
+    // 2) Online nodes count (excluding self)
+    {
+        char usersString[24];
+        int nodes_online = (nodeStatus->getNumOnline() > 0) ? (nodeStatus->getNumOnline() - 1) : 0;
+        snprintf(usersString, sizeof(usersString), "%d online", nodes_online);
+        drawCentered(usersString, yCur);
+        yCur += spacing;
     }
 
-    // Only draw the version string if it's non-empty (prevents garbage display)
-    if (appversionstr[0] != '\0') {
-        int textWidth = display->getStringWidth(appversionstr);
-        int nameX = (SCREEN_WIDTH - textWidth) / 2;
-        display->drawString(nameX, getTextPositions(display)[line], appversionstr);
+    // 3) GPS status
+#if HAS_GPS
+    if (config.position.gps_mode != meshtastic_Config_PositionConfig_GpsMode_ENABLED) {
+        const char *displayLine = config.position.fixed_position
+                                      ? "Fixed GPS"
+                                      : (config.position.gps_mode == meshtastic_Config_PositionConfig_GpsMode_NOT_PRESENT ? "No GPS"
+                                                                                                                         : "GPS off");
+        drawCentered(displayLine, yCur);
+        yCur += spacing;
+    } else {
+        char textString[16];
+        if (config.position.fixed_position)
+            snprintf(textString, sizeof(textString), "Fixed");
+        else if (!gpsStatus->getIsConnected())
+            snprintf(textString, sizeof(textString), "No Lock");
+        else if (!gpsStatus->getHasLock())
+            snprintf(textString, sizeof(textString), "No Sats");
+        else
+            snprintf(textString, sizeof(textString), "%u sats", gpsStatus->getNumSatellites());
+        drawCentered(textString, yCur);
+        yCur += spacing;
     }
-#if !defined(M5STACK_UNITC6L)
-    if (SCREEN_HEIGHT > 64 || (SCREEN_HEIGHT <= 64 && line < 4)) { // Only show uptime if the screen can show it
-        line += 1;
+#endif
+
+    // 4) Uptime
+    {
         char uptimeStr[32] = "";
         uint32_t uptime = millis() / 1000;
         uint32_t days = uptime / 86400;
         uint32_t hours = (uptime % 86400) / 3600;
         uint32_t mins = (uptime % 3600) / 60;
-        // Show as "Up: 2d 3h", "Up: 5h 14m", or "Up: 37m"
-        //Up yazisi
-        // if (days)
-        //     snprintf(uptimeStr, sizeof(uptimeStr), " Up: %ud %uh", days, hours);
-        // else if (hours)
-        //     snprintf(uptimeStr, sizeof(uptimeStr), " Up: %uh %um", hours, mins);
-        // else
-        //     snprintf(uptimeStr, sizeof(uptimeStr), " Uptime: %um", mins);
-        textWidth = display->getStringWidth(uptimeStr);
-        nameX = (SCREEN_WIDTH - textWidth) / 2;
-        display->drawString(nameX, getTextPositions(display)[line], uptimeStr);
+        if (days)
+            snprintf(uptimeStr, sizeof(uptimeStr), "Up: %ud %uh", days, hours);
+        else if (hours)
+            snprintf(uptimeStr, sizeof(uptimeStr), "Up: %uh %um", hours, mins);
+        else
+            snprintf(uptimeStr, sizeof(uptimeStr), "Up: %um", mins);
+        drawCentered(uptimeStr, yCur);
     }
+
+    // === App name at bottom (dynamic: OEM text -> node long_name -> owner.short_name -> hw id)
+    display->setFont(FONT_SMALL);
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
+    const char *appName = nullptr;
+    static char appBuf[64] = {0};
+#ifdef USERPREFS_OEM_TEXT
+    appName = USERPREFS_OEM_TEXT;
 #endif
+
+    if (!appName) {
+        if (auto *meNode = nodeDB->getMeshNode(nodeDB->getNodeNum()); meNode && meNode->has_user && meNode->user.long_name[0]) {
+            std::string sanitized = sanitizeString(meNode->user.long_name);
+            strncpy(appBuf, sanitized.c_str(), sizeof(appBuf) - 1);
+            appBuf[sizeof(appBuf) - 1] = '\0';
+            if (UIRenderer::haveGlyphs(appBuf))
+                appName = appBuf;
+        }
+    }
+    if (!appName && owner.short_name && owner.short_name[0] && UIRenderer::haveGlyphs(owner.short_name))
+        appName = owner.short_name;
+    if (!appName)
+        appName = screen->ourId;
+
+    int appY = y + SCREEN_HEIGHT - FONT_HEIGHT_SMALL - 1;
+    if (appY < 0)
+        appY = SCREEN_HEIGHT - FONT_HEIGHT_SMALL - 1;
+
+    // Draw small device name just above the app name
+    {
+        const char *devName = nullptr;
+        static char devBuf[64] = {0};
+        if (auto *meNode = nodeDB->getMeshNode(nodeDB->getNodeNum()); meNode && meNode->has_user && meNode->user.long_name[0]) {
+            std::string sanitized = sanitizeString(meNode->user.long_name);
+            strncpy(devBuf, sanitized.c_str(), sizeof(devBuf) - 1);
+            devBuf[sizeof(devBuf) - 1] = '\0';
+            if (UIRenderer::haveGlyphs(devBuf))
+                devName = devBuf;
+        }
+        if (!devName && owner.short_name && owner.short_name[0] && UIRenderer::haveGlyphs(owner.short_name))
+            devName = owner.short_name;
+        if (!devName)
+            devName = screen->ourId;
+
+        int devY = appY - FONT_HEIGHT_SMALL - 2;
+        if (devY < 0)
+            devY = 0;
+        display->setFont(FONT_SMALL);
+        display->setColor(WHITE);
+        drawCentered(devName, devY);
+    }
+
+    display->setColor(WHITE);
+    display->drawString(SCREEN_WIDTH / 2, appY, appName);
+    display->setTextAlignment(TEXT_ALIGN_LEFT);
 }
 
 // ****************************
