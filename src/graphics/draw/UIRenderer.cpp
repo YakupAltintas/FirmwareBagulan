@@ -240,6 +240,7 @@ void UIRenderer::drawNodes(OLEDDisplay *display, int16_t x, int16_t y, const mes
 {
     char usersString[20];
     int nodes_online = (nodeStatus->getNumOnline() > 0) ? nodeStatus->getNumOnline() + node_offset : 0;
+    
 
     snprintf(usersString, sizeof(usersString), "%d %s", nodes_online, additional_words.c_str());
 
