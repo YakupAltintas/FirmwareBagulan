@@ -1023,11 +1023,13 @@ void Screen::setFrames(FrameFocus focus)
          indicatorIcons.push_back(icon_compass);
     }
 #endif
-    if (RadioLibInterface::instance && !hiddenFrames.lora) {
-        fsi.positions.lora = numframes;
-        normalFrames[numframes++] = graphics::DebugRenderer::drawLoRaFocused;
-        indicatorIcons.push_back(icon_radio);
-    }
+#if 0 // LongRange screen disabled (kept for reference)
+    // if (RadioLibInterface::instance && !hiddenFrames.lora) {
+    //     fsi.positions.lora = numframes;
+    //     normalFrames[numframes++] = graphics::DebugRenderer::drawLoRaFocused;
+    //     indicatorIcons.push_back(icon_radio);
+    // }
+#endif
     if (!hiddenFrames.system) {
         fsi.positions.system = numframes;
         normalFrames[numframes++] = graphics::DebugRenderer::drawSystemScreen;
@@ -1270,10 +1272,10 @@ void Screen::hideCurrentFrame()
         LOG_DEBUG("Hide WiFi Screen");
         hiddenFrames.wifi = true;
         dismissed = true;
-    } else if (currentFrame == framesetInfo.positions.lora) {
-        LOG_INFO("Hide LongRange");
-        hiddenFrames.lora = true;
-        dismissed = true;
+    // } else if (currentFrame == framesetInfo.positions.lora) {
+    //     LOG_INFO("Hide LongRange");
+    //     hiddenFrames.lora = true;
+    //     dismissed = true;
     }
 
     if (dismissed) {
@@ -1577,8 +1579,8 @@ int Screen::handleInputEvent(const InputEvent *event)
 #endif
                 } else if (this->ui->getUiState()->currentFrame == framesetInfo.positions.clock) {
                     menuHandler::clockMenu();
-                } else if (this->ui->getUiState()->currentFrame == framesetInfo.positions.lora) {
-                    menuHandler::loraMenu();
+                // } else if (this->ui->getUiState()->currentFrame == framesetInfo.positions.lora) {
+                //     menuHandler::loraMenu();
                 } else if (this->ui->getUiState()->currentFrame == framesetInfo.positions.textMessage) {
                     if (devicestate.rx_text_message.from) {
                         menuHandler::messageResponseMenu();

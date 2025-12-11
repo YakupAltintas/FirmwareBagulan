@@ -81,7 +81,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // -----------------------------------------------------------------------------
 
 // Override user saved region, for producing region-locked builds
-// #define REGULATORY_LORA_REGIONCODE meshtastic_Config_LoRaConfig_RegionCode_SG_923
+// Uncomment and set to lock device to a specific region. Example: EU_868
+#define REGULATORY_LORA_REGIONCODE meshtastic_Config_LoRaConfig_RegionCode_EU_868
 
 // Total system gain in dBm to subtract from Tx power to remain within regulatory and Tx PA limits
 // The value consists of PA gain + antenna gain (if variant has a non-removable antenna)
@@ -143,8 +144,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // Disable use of the NTP library and related features
 // #define DISABLE_NTP
 
-// Disable the welcome screen and allow
-// #define DISABLE_WELCOME_UNSET
+// Disable the welcome screen and allow skipping the onboard region picker.
+// This removes the initial tutorial/region selection overlay.
+#define DISABLE_WELCOME_UNSET
 
 // -----------------------------------------------------------------------------
 // OLED & Input

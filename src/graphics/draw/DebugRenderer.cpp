@@ -366,87 +366,77 @@ void drawDebugInfoWiFiTrampoline(OLEDDisplay *display, OLEDDisplayUiState *state
 // ****************************
 // * LoRa Focused Screen      *
 // ****************************
+// LongRange page disabled - all code kept as comments for future reference
 void drawLoRaFocused(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
 {
-    display->clear();
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
-    display->setFont(FONT_SMALL);
-    // Başlangıç satırı (dinamik kaydırma uygulanacak)
-    int line = 1;
+    // display->clear();
+    // display->setTextAlignment(TEXT_ALIGN_LEFT);
+    // display->setFont(FONT_SMALL);
+    // int line = 1;
+
+    // const char *titleStr = (isHighResolution) ? "LongRange Info" : "LongRange";
+    // graphics::drawCommonHeader(display, x, y, titleStr);
+
+    // const int lift = isHighResolution ? 12 : 6;
+
+    // int chutil_percent = 0;
+    // if (airTime) chutil_percent = airTime->channelUtilizationPercent();
+    // if (chutil_percent < 0) chutil_percent = 0;
+    // if (chutil_percent > 100) chutil_percent = 100;
+
+    // const int barWidth = isHighResolution ? 100 : 50;
+    // const int barHeight = isHighResolution ? 12 : 7;
+    // const int barGap = 2;
+
+    // int pageShiftLines = (barHeight + barGap + (FONT_HEIGHT_SMALL - 1)) / FONT_HEIGHT_SMALL;
+    // int roleLine = line + pageShiftLines;
+    // int barY = getTextPositions(display)[roleLine] - lift - barHeight - (barGap);
+
+    // display->setTextAlignment(TEXT_ALIGN_LEFT);
+    // int labelWidth = display->getStringWidth("CU:");
+    // int labelPadding = isHighResolution ? 6 : 3;
+    // int totalWidth = labelWidth + labelPadding + barWidth;
+    // int centerX = SCREEN_WIDTH / 2;
+    // int startX = centerX - (totalWidth / 2);
+    // if (startX < x) startX = x;
+    // int labelX = startX;
+    // int labelY = barY + (barHeight - FONT_HEIGHT_SMALL) / 2;
+    // int barX = labelX + labelWidth + labelPadding;
+    // display->drawString(labelX, labelY, "CU:");
+
+    // display->drawRect(barX, barY, barWidth, barHeight);
+    // int fillW = (barWidth * chutil_percent) / 100;
+    // if (fillW > 0) {
+    //     display->fillRect(barX, barY, fillW, barHeight);
+    // }
+
+    // auto role = DisplayFormatters::getDeviceRole(config.device.role);
+    // char device_role[25];
+    // snprintf(device_role, sizeof(device_role), "Role: %s", role);
+    // int textWidth = display->getStringWidth(device_role);
+    // int nameX = (SCREEN_WIDTH - textWidth) / 2;
+    // display->drawString(nameX, getTextPositions(display)[roleLine] - lift, device_role);
+    // line = roleLine + 1;
+
+    // auto mode = DisplayFormatters::getModemPresetDisplayName(config.lora.modem_preset, false, config.lora.use_preset);
+    // char regionradiopreset[25];
+    // const char *region = myRegion ? myRegion->name : NULL;
+    // if (region != nullptr) {
+    // #if defined(M5STACK_UNITC6L)
+    //     snprintf(regionradiopreset, sizeof(regionradiopreset), "%s", region);
+    // #else
+    //     snprintf(regionradiopreset, sizeof(regionradiopreset), "%s/%s", region, mode);
+    // #endif
+    //     textWidth = display->getStringWidth(regionradiopreset);
+    //     nameX = (SCREEN_WIDTH - textWidth) / 2;
+    //     display->drawString(nameX, getTextPositions(display)[line++] - lift, regionradiopreset);
+    // }
     
-    // === Set Title
-    const char *titleStr = (isHighResolution) ? "LongRange Info" : "LongRange";
-
-    // Header en sonda çizilecek (alt bar)
-    graphics::drawCommonHeader(display, x, y, titleStr);
-
-    // İçeriği biraz yukarı taşımak için offset
-    const int lift = isHighResolution ? 12 : 6;
-
-    // === ChUtil bar: Role kısmının Üstü ===
-    int chutil_percent = 0;
-    if (airTime) chutil_percent = airTime->channelUtilizationPercent();
-    if (chutil_percent < 0) chutil_percent = 0;
-    if (chutil_percent > 100) chutil_percent = 100;
-
-    const int barWidth  = isHighResolution ? 100 : 50;
-    const int barHeight = isHighResolution ? 12  : 7;
-    const int barGap    = 2; // role ile bar arası boşluk
-
-    // Dinamik: bar yüksekliğine göre kaç satır yer kaydırmamız gerektiğini hesapla
-    int pageShiftLines = (barHeight + barGap + (FONT_HEIGHT_SMALL - 1)) / FONT_HEIGHT_SMALL; // roundup
-    int roleLine = line + pageShiftLines; // role bu satırda çizilecek
-
-    // bar, roleLine'in üstüne yerleşecek (y hesaplanıyor)
-    int barY = getTextPositions(display)[roleLine] - lift - barHeight - (barGap);
-
-    // CHANGED: Label+Bar birlikte ortalanacak. totalWidth = label + padding + bar
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
-    int labelWidth = display->getStringWidth("CU:");
-    int labelPadding = isHighResolution ? 6 : 3; // arasındaki boşluk
-    int totalWidth = labelWidth + labelPadding + barWidth;
-    int centerX = SCREEN_WIDTH / 2;
-    int startX = centerX - (totalWidth / 2);
-    if (startX < x) startX = x; // sol kenarı aşmasın
-    int labelX = startX;
-    int labelY = barY + (barHeight - FONT_HEIGHT_SMALL) / 2;
-    int barX = labelX + labelWidth + labelPadding;
-    // Çiz
-    display->drawString(labelX, labelY, "CU:");
-
-    // Bar çerçevesi ve dolgu
-    display->drawRect(barX, barY, barWidth, barHeight);
-    int fillW = (barWidth * chutil_percent) / 100;
-    if (fillW > 0) {
-        display->fillRect(barX, barY, fillW, barHeight);
-    }
-
-    // === Role ===
-    auto role = DisplayFormatters::getDeviceRole(config.device.role);
-    char device_role[25];
-    snprintf(device_role, sizeof(device_role), "Role: %s", role);
-    int textWidth = display->getStringWidth(device_role);
-    int nameX = (SCREEN_WIDTH - textWidth) / 2;
-    // Role'ü roleLine'a göre çiz
-    display->drawString(nameX, getTextPositions(display)[roleLine] - lift, device_role);
-    // Sonraki içerik roleLine+1'den başlayacak
-    line = roleLine + 1;
-
-    // === Region / Modem Preset ===
-    auto mode = DisplayFormatters::getModemPresetDisplayName(config.lora.modem_preset, false, config.lora.use_preset);
-    char regionradiopreset[25];
-    const char *region = myRegion ? myRegion->name : NULL;
-    if (region != nullptr) {
-#if defined(M5STACK_UNITC6L)
-        snprintf(regionradiopreset, sizeof(regionradiopreset), "%s", region);
-#else
-        snprintf(regionradiopreset, sizeof(regionradiopreset), "%s/%s", region, mode);
-#endif
-        textWidth = display->getStringWidth(regionradiopreset);
-        nameX = (SCREEN_WIDTH - textWidth) / 2;
-        display->drawString(nameX, getTextPositions(display)[line++] - lift, regionradiopreset);
-    }
-    // === Bottom header: battery/time/title ===
+    // Unused function - LongRange page disabled
+    (void)display;
+    (void)state;
+    (void)x;
+    (void)y;
 }
 
 // ****************************

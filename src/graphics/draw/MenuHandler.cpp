@@ -31,17 +31,16 @@ uint8_t test_count = 0;
 
 void menuHandler::loraMenu()
 {
-    static const char *optionsArray[] = {"Back", "Region Picker", "Device Role"};
-    enum optionsNumbers { Back = 0, lora_picker = 1, device_role_picker = 2 };
+    // Remove Region Picker option for region-locked builds; keep Device Role
+    static const char *optionsArray[] = {"Back", "Device Role"};
+    enum optionsNumbers { Back = 0, device_role_picker = 1 };
     BannerOverlayOptions bannerOptions;
     bannerOptions.message = "LongRange Actions";
     bannerOptions.optionsArrayPtr = optionsArray;
-    bannerOptions.optionsCount = 3;
+    bannerOptions.optionsCount = 2;
     bannerOptions.bannerCallback = [](int selected) -> void {
         if (selected == Back) {
             // No action
-        } else if (selected == lora_picker) {
-            menuHandler::menuQueue = menuHandler::lora_picker;
         } else if (selected == device_role_picker) {
             menuHandler::menuQueue = menuHandler::device_role_picker;
         }
@@ -72,6 +71,11 @@ void menuHandler::OnboardMessage()
 
 void menuHandler::LoraRegionPicker(uint32_t duration)
 {
+#ifdef REGULATORY_LORA_REGIONCODE
+    // Region locked at compile time; do not show picker
+    (void)duration;
+    return;
+#endif
     static const char *optionsArray[] = {"Back",
                                          "US",
                                          "EU_433",
