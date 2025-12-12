@@ -130,7 +130,7 @@ void esp32Setup()
 
     // Create object to store our persistent data
     Preferences preferences;
-    preferences.begin("meshtastic", false);
+    preferences.begin("Bagulan", false);
 
     uint32_t rebootCounter = preferences.getUInt("rebootCounter", 0);
     rebootCounter++;

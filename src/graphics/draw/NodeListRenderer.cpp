@@ -95,13 +95,14 @@ int calculateMaxScroll(int totalEntries, int visibleRows)
     return std::max(0, (totalEntries - 1) / (visibleRows * 2));
 }
 
+// Column separator disabled (no table grid lines)
 void drawColumnSeparator(OLEDDisplay *display, int16_t x, int16_t yStart, int16_t yEnd)
 {
-    int columnWidth = display->getWidth() / 2;
-    int separatorX = x + columnWidth - 2;
-    for (int y = yStart; y <= yEnd; y += 2) {
-        display->setPixel(separatorX, y);
-    }
+    (void)display;
+    (void)x;
+    (void)yStart;
+    (void)yEnd;
+    // intentionally left blank
 }
 
 void drawScrollbar(OLEDDisplay *display, int visibleNodeRows, int totalEntries, int scrollIndex, int columns, int scrollStartY)

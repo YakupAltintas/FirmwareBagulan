@@ -58,7 +58,7 @@ static int32_t reconnectETH()
                 }
                 syslog.server(serverAddr, serverPort);
                 syslog.deviceHostname(getDeviceName());
-                syslog.appName("Meshtastic");
+                syslog.appName("Bagulan");
                 syslog.defaultPriority(LOGLEVEL_USER);
                 syslog.enable();
             }

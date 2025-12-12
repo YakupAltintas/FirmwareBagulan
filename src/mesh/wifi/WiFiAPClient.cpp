@@ -86,21 +86,21 @@ static void onNetworkConnected()
         LOG_INFO("Start network services");
 
         // start mdns
-        if (!MDNS.begin("Meshtastic")) {
+        if (!MDNS.begin("Bagulan")) {
             LOG_ERROR("Error setting up mDNS responder!");
         } else {
-            LOG_INFO("mDNS Host: Meshtastic.local");
-            MDNS.addService("meshtastic", "tcp", SERVER_API_DEFAULT_PORT);
+            LOG_INFO("mDNS Host: Bagulan.local");
+            MDNS.addService("bagulan", "tcp", SERVER_API_DEFAULT_PORT);
 // ESPmDNS (ESP32) and SimpleMDNS (RP2040) have slightly different APIs for adding TXT records
 #ifdef ARCH_ESP32
-            MDNS.addServiceTxt("meshtastic", "tcp", "shortname", String(owner.short_name));
-            MDNS.addServiceTxt("meshtastic", "tcp", "id", String(nodeDB->getNodeId().c_str()));
-            MDNS.addServiceTxt("meshtastic", "tcp", "pio_env", optstr(APP_ENV));
+            MDNS.addServiceTxt("bagulan", "tcp", "shortname", String(owner.short_name));
+            MDNS.addServiceTxt("bagulan", "tcp", "id", String(nodeDB->getNodeId().c_str()));
+            MDNS.addServiceTxt("bagulan", "tcp", "pio_env", optstr(APP_ENV));
             // ESP32 prints obtained IP address in WiFiEvent
 #elif defined(ARCH_RP2040)
-            MDNS.addServiceTxt("meshtastic", "shortname", owner.short_name);
-            MDNS.addServiceTxt("meshtastic", "id", nodeDB->getNodeId().c_str());
-            MDNS.addServiceTxt("meshtastic", "pio_env", optstr(APP_ENV));
+            MDNS.addServiceTxt("Bagulan", "shortname", owner.short_name);
+            MDNS.addServiceTxt("Bagulan", "id", nodeDB->getNodeId().c_str());
+            MDNS.addServiceTxt("Bagulan", "pio_env", optstr(APP_ENV));
             LOG_INFO("Obtained IP address: %s", WiFi.localIP().toString().c_str());
 #endif
         }
@@ -126,7 +126,7 @@ static void onNetworkConnected()
             }
             syslog.server(serverAddr, serverPort);
             syslog.deviceHostname(getDeviceName());
-            syslog.appName("Meshtastic");
+            syslog.appName("Bagulan");
             syslog.defaultPriority(LOGLEVEL_USER);
             syslog.enable();
         }
@@ -285,7 +285,7 @@ bool initWifi()
         if (*wifiName) {
             uint8_t dmac[6];
             getMacAddr(dmac);
-            snprintf(ourHost, sizeof(ourHost), "Meshtastic-%02x%02x", dmac[4], dmac[5]);
+            snprintf(ourHost, sizeof(ourHost), "Bagulan-%02x%02x", dmac[4], dmac[5]);
 
             WiFi.mode(WIFI_STA);
             WiFi.setHostname(ourHost);

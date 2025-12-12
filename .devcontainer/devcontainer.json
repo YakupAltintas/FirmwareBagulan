@@ -1,7 +1,7 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/cpp
 {
-  "name": "Meshtastic Firmware Dev",
+  "name": "Bagulan Firmware Dev",
   "build": {
     "dockerfile": "Dockerfile"
   },

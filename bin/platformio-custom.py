@@ -120,7 +120,7 @@ for pref in userPrefs:
         pref_flags.append("-D" + pref + "=" + userPrefs[pref])
     elif userPrefs[pref] == "true" or userPrefs[pref] == "false":
         pref_flags.append("-D" + pref + "=" + userPrefs[pref])
-    elif userPrefs[pref].startswith("meshtastic_"):
+    elif userPrefs[pref].startswith("bagulan_"):
         pref_flags.append("-D" + pref + "=" + userPrefs[pref])
     # If the value is a string, we need to wrap it in quotes
     else:
