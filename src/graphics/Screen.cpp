@@ -739,13 +739,14 @@ int32_t Screen::runOnce()
 #endif
 
 #ifndef DISABLE_WELCOME_UNSET
-    if (!NotificationRenderer::isOverlayBannerShowing() && config.lora.region == meshtastic_Config_LoRaConfig_RegionCode_UNSET) {
+    // Region picker disabled - EU868 is fixed
+    /*if (!NotificationRenderer::isOverlayBannerShowing() && config.lora.region == meshtastic_Config_LoRaConfig_RegionCode_UNSET) {
 #if defined(M5STACK_UNITC6L)
         menuHandler::LoraRegionPicker();
 #else
         menuHandler::OnboardMessage();
 #endif
-    }
+    }*/
 #endif
     if (!NotificationRenderer::isOverlayBannerShowing() && rebootAtMsec != 0) {
         showSimpleBanner("Rebooting...", 0);

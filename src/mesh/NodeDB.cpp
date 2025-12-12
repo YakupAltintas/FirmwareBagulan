@@ -197,6 +197,13 @@ NodeDB::NodeDB()
     loadFromDisk();
     cleanupMeshDB();
 
+    //lora.region static ayarlaması burada yapıldı!!!
+    // Force region to EU_868 at every boot
+    if (config.lora.region != meshtastic_Config_LoRaConfig_RegionCode_EU_868) {
+        LOG_INFO("Forcing LoRa region to EU_868");
+        config.lora.region = meshtastic_Config_LoRaConfig_RegionCode_EU_868;
+    }
+
     uint32_t devicestateCRC = crc32Buffer(&devicestate, sizeof(devicestate));
     uint32_t nodeDatabaseCRC = crc32Buffer(&nodeDatabase, sizeof(nodeDatabase));
     uint32_t configCRC = crc32Buffer(&config, sizeof(config));
@@ -569,9 +576,9 @@ void NodeDB::installDefaultConfig(bool preserveKey = false)
 #endif
 
 #ifdef USERPREFS_CONFIG_LORA_REGION
-    config.lora.region = USERPREFS_CONFIG_LORA_REGION;
+    config.lora.region = (meshtastic_Config_LoRaConfig_RegionCode)USERPREFS_CONFIG_LORA_REGION;
 #else
-    config.lora.region = meshtastic_Config_LoRaConfig_RegionCode_UNSET;
+    config.lora.region = meshtastic_Config_LoRaConfig_RegionCode_EU_868;
 #endif
 #ifdef USERPREFS_LORACONFIG_MODEM_PRESET
     config.lora.modem_preset = USERPREFS_LORACONFIG_MODEM_PRESET;
@@ -650,7 +657,7 @@ void NodeDB::installDefaultConfig(bool preserveKey = false)
     config.security.serial_enabled = true;
     config.security.admin_channel_enabled = false;
     resetRadioConfig(true); // This also triggers NodeInfo/Position requests since we're fresh
-    strncpy(config.network.ntp_server, "meshtastic.pool.ntp.org", 32);
+    //strncpy(config.network.ntp_server, "meshtastic.pool.ntp.org", 32);
 
 #if (defined(T_DECK) || defined(T_WATCH_S3) || defined(UNPHONE) || defined(PICOMPUTER_S3) || defined(SENSECAP_INDICATOR) ||      \
      defined(ELECROW_PANEL)||defined(HELTEC_V4_TFT)) &&                                                                                                  \

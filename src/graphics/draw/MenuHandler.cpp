@@ -72,8 +72,17 @@ void menuHandler::OnboardMessage()
 void menuHandler::LoraRegionPicker(uint32_t duration)
 {
 #ifdef REGULATORY_LORA_REGIONCODE
-    // Region locked at compile time; do not show picker
+    // Region locked at compile time; set directly without showing picker
     (void)duration;
+    if (config.lora.region != meshtastic_Config_LoRaConfig_RegionCode_EU_868) {
+        config.lora.region = meshtastic_Config_LoRaConfig_RegionCode_EU_868;
+        config.lora.tx_enabled = true;
+        initRegion();
+        if (myRegion->dutyCycle < 100) {
+            config.lora.ignore_mqtt = true;
+        }
+        service->reloadConfig(SEGMENT_CONFIG);
+    }
     return;
 #endif
     static const char *optionsArray[] = {"Back",
