@@ -859,26 +859,20 @@ void UIRenderer::drawIconScreen(const char *upperMsg, OLEDDisplay *display, OLED
 void UIRenderer::drawCompassAndLocationScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
 {
     display->clear();
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
     display->setFont(FONT_SMALL);
     int line = 1;
 
     const char *titleStr = "Location";
-    
-    graphics::drawCommonHeader(display, x, y, titleStr);
+    // Başlık ortalanacak
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
+    graphics::drawCommonHeader(display, 0, y, titleStr); // x=0 ile başlat
 
-    
-
-    // CHANGED: header en sonda çizilecek
 #if HAS_GPS
     bool origBold = config.display.heading_bold;
     config.display.heading_bold = false;
 
-    // ADDED: ortalı yazı için geçici CENTER hizası
+    // Tüm içerik ortalanacak
     display->setTextAlignment(TEXT_ALIGN_CENTER);
-
-    // Footer/header is drawn at the bottom by drawCommonHeader.
-    // Compute its height dynamically and shift content UP so it stays above it.
     const int highlightHeight = FONT_HEIGHT_SMALL - 1;
 
     const char *displayLine = "";
@@ -887,22 +881,16 @@ void UIRenderer::drawCompassAndLocationScreen(OLEDDisplay *display, OLEDDisplayU
                         config.position.gps_mode != meshtastic_Config_PositionConfig_GpsMode_ENABLED);
 
     if (usePhoneGPS) {
-        // Phone-provided GPS is active
         displayLine = "Phone GPS";
-        // REMOVED: uydu ikonu
-    display->drawString(x + (display->getWidth() / 2), getTextPositions(display)[line++] - highlightHeight, displayLine);
+        display->drawString(display->getWidth() / 2, getTextPositions(display)[line++] - highlightHeight, displayLine);
     } else if (config.position.gps_mode != meshtastic_Config_PositionConfig_GpsMode_ENABLED) {
-        // GPS disabled / not present
         if (config.position.fixed_position) {
             displayLine = "Fixed GPS";
         } else {
             displayLine = config.position.gps_mode == meshtastic_Config_PositionConfig_GpsMode_NOT_PRESENT ? "No GPS" : "GPS off";
         }
-        // REMOVED: uydu ikonu
-    display->drawString(x + (display->getWidth() / 2), getTextPositions(display)[line++] - highlightHeight, displayLine);
+        display->drawString(display->getWidth() / 2, getTextPositions(display)[line++] - highlightHeight, displayLine);
     } else {
-        // Onboard GPS
-        // CHANGED: drawGps yerine ikon içermeyen kısa metin
         char textString[12];
         if (config.position.fixed_position) {
             snprintf(textString, sizeof(textString), "Fixed");
@@ -913,45 +901,24 @@ void UIRenderer::drawCompassAndLocationScreen(OLEDDisplay *display, OLEDDisplayU
         } else {
             snprintf(textString, sizeof(textString), "%u sats", gpsStatus->getNumSatellites());
         }
-    display->drawString(x + (display->getWidth() / 2), getTextPositions(display)[line++] - highlightHeight, textString);
+        display->drawString(display->getWidth() / 2, getTextPositions(display)[line++] - highlightHeight, textString);
     }
 
-    // restore LEFT
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
-
+    // Diğer içerikler de ortalanacak
     config.display.heading_bold = origBold;
-
     geoCoord.updateCoords(int32_t(gpsStatus->getLatitude()), int32_t(gpsStatus->getLongitude()),
                           int32_t(gpsStatus->getAltitude()));
 
-    // === Determine Compass Heading ===
-    // float heading = 0;
-    // bool validHeading = false;
-    // if (uiconfig.compass_mode == meshtastic_CompassMode_FREEZE_HEADING) {
-    //     validHeading = true;
-    // } else {
-    //     if (screen->hasHeading()) {
-    //         heading = radians(screen->getHeading());
-    //         validHeading = true;
-    //     } else {
-    //         heading = screen->estimatedHeading(geoCoord.getLatitude() * 1e-7, geoCoord.getLongitude() * 1e-7);
-    //         validHeading = !isnan(heading);
-    //     }
-    // }
-
-    // If GPS is off, no need to display these parts
     if (strcmp(displayLine, "GPS off") != 0 && strcmp(displayLine, "No GPS") != 0) {
         // === Second Row: Last GPS Fix ===
+        char buf[32];
         if (gpsStatus->getLastFixMillis() > 0) {
             uint32_t delta = (millis() - gpsStatus->getLastFixMillis()) / 1000; // seconds since last fix
             uint32_t days = delta / 86400;
             uint32_t hours = (delta % 86400) / 3600;
             uint32_t mins = (delta % 3600) / 60;
             uint32_t secs = delta % 60;
-
-            char buf[32];
 #if defined(USE_EINK)
-            // E-Ink: skip seconds, show only days/hours/mins
             if (days > 0) {
                 snprintf(buf, sizeof(buf), "Last: %ud %uh", days, hours);
             } else if (hours > 0) {
@@ -960,7 +927,6 @@ void UIRenderer::drawCompassAndLocationScreen(OLEDDisplay *display, OLEDDisplayU
                 snprintf(buf, sizeof(buf), "Last: %um", mins);
             }
 #else
-            // Non E-Ink: include seconds where useful
             if (days > 0) {
                 snprintf(buf, sizeof(buf), "Last: %ud %uh", days, hours);
             } else if (hours > 0) {
@@ -971,19 +937,21 @@ void UIRenderer::drawCompassAndLocationScreen(OLEDDisplay *display, OLEDDisplayU
                 snprintf(buf, sizeof(buf), "Last: %us", secs);
             }
 #endif
-
-            display->drawString(0, getTextPositions(display)[line++] - highlightHeight, buf);
+            display->drawString(display->getWidth() / 2, getTextPositions(display)[line++] - highlightHeight, buf);
         } else {
-            display->drawString(0, getTextPositions(display)[line++] - highlightHeight, "Last: ?");
+            snprintf(buf, sizeof(buf), "Last: ?");
+            display->drawString(display->getWidth() / 2, getTextPositions(display)[line++] - highlightHeight, buf);
         }
 
         // === Third Row: Line 1 GPS Info ===
-    UIRenderer::drawGpsCoordinates(display, x, getTextPositions(display)[line++] - highlightHeight, gpsStatus, "line1");
+        // drawGpsCoordinates fonksiyonu içinde alignment ayarlanmadığı için burada ortalanacak şekilde çağırıyoruz
+        display->setTextAlignment(TEXT_ALIGN_CENTER);
+        UIRenderer::drawGpsCoordinates(display, display->getWidth() / 2, getTextPositions(display)[line++] - highlightHeight, gpsStatus, "line1");
 
         if (uiconfig.gps_format != meshtastic_DeviceUIConfig_GpsCoordinateFormat_OLC &&
             uiconfig.gps_format != meshtastic_DeviceUIConfig_GpsCoordinateFormat_MLS) {
-            // === Fourth Row: Line 2 GPS Info ===
-            UIRenderer::drawGpsCoordinates(display, x, getTextPositions(display)[line++] - highlightHeight, gpsStatus, "line2");
+            display->setTextAlignment(TEXT_ALIGN_CENTER);
+            UIRenderer::drawGpsCoordinates(display, display->getWidth() / 2, getTextPositions(display)[line++] - highlightHeight, gpsStatus, "line2");
         }
     }
     // === Draw Compass ===
